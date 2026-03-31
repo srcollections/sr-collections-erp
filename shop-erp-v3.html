@@ -5,223 +5,130 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SR Collections — Cloth & Shoes</title>
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700;800&family=Noto+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<!-- Supabase SDK -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-  :root {
-    --bg: #0f0e17;
-    --surface: #1a1825;
-    --surface2: #231f35;
-    --accent: #f4a261;
-    --accent2: #e76f51;
-    --green: #52b788;
-    --red: #e63946;
-    --blue: #4cc9f0;
-    --purple: #7b5ea7;
-    --text: #fffffe;
-    --text2: #a7a3b8;
-    --border: rgba(255,255,255,0.08);
-    --radius: 14px;
-    --font-head: 'Baloo 2', cursive;
-    --font-body: 'Noto Sans', sans-serif;
-  }
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: var(--bg); color: var(--text); font-family: var(--font-body); min-height: 100vh; display: flex; }
-
-  /* Sidebar */
-  .sidebar {
-    width: 220px; min-height: 100vh; background: var(--surface);
-    border-right: 1px solid var(--border); display: flex; flex-direction: column;
-    position: fixed; left: 0; top: 0; bottom: 0; z-index: 100;
-  }
-  .logo {
-    padding: 20px 20px 14px;
-    font-family: var(--font-head); font-size: 20px; font-weight: 800;
-    color: var(--accent); line-height: 1.2;
-    display: flex; flex-direction: column; align-items: flex-start; gap: 8px;
-  }
-  .logo-img-wrap {
-    width: 100%; display: flex; align-items: center; gap: 10px;
-  }
-  .logo-svg {
-    width: 42px; height: 42px; flex-shrink: 0;
-  }
-  .logo-text { display: flex; flex-direction: column; }
-  .logo-name { font-family: var(--font-head); font-size: 19px; font-weight: 800; color: var(--accent); letter-spacing: 0.5px; }
-  .logo-sub { font-size: 10px; font-weight: 500; color: var(--text2); letter-spacing: 2px; text-transform: uppercase; margin-top: 1px; }
-  .logo-divider { width: 100%; height: 1px; background: linear-gradient(90deg, var(--accent), transparent); margin-top: 4px; opacity: 0.4; }
-  .nav { flex: 1; padding: 8px 12px; display: flex; flex-direction: column; gap: 4px; }
-  .nav-item {
-    display: flex; align-items: center; gap: 10px; padding: 10px 12px;
-    border-radius: 10px; cursor: pointer; font-size: 14px; font-weight: 500;
-    color: var(--text2); transition: all 0.2s; border: none; background: none; width: 100%; text-align: left;
-  }
-  .nav-item:hover { background: rgba(244,162,97,0.08); color: var(--text); }
-  .nav-item.active { background: rgba(244,162,97,0.15); color: var(--accent); }
-  .nav-item .icon { font-size: 18px; width: 22px; text-align: center; }
-  .sidebar-footer { padding: 16px; border-top: 1px solid var(--border); font-size: 12px; color: var(--text2); }
-
-  /* Main */
-  .main { margin-left: 220px; flex: 1; padding: 32px; min-height: 100vh; }
-  .page { display: none; }
-  .page.active { display: block; }
-  .page-header { margin-bottom: 28px; }
-  .page-header h1 { font-family: var(--font-head); font-size: 28px; font-weight: 700; }
-  .page-header p { color: var(--text2); font-size: 14px; margin-top: 4px; }
-
-  /* Cards */
-  .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 28px; }
-  .stat-card {
-    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
-    padding: 20px; position: relative; overflow: hidden;
-  }
-  .stat-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; }
-  .stat-card.green::before { background: var(--green); }
-  .stat-card.orange::before { background: var(--accent); }
-  .stat-card.red::before { background: var(--red); }
-  .stat-card.blue::before { background: var(--blue); }
-  .stat-label { font-size: 12px; color: var(--text2); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
-  .stat-value { font-family: var(--font-head); font-size: 28px; font-weight: 700; }
-  .stat-value.green { color: var(--green); }
-  .stat-value.orange { color: var(--accent); }
-  .stat-value.red { color: var(--red); }
-  .stat-value.blue { color: var(--blue); }
-  .stat-sub { font-size: 12px; color: var(--text2); margin-top: 6px; }
-
-  /* Table */
-  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-bottom: 24px; }
-  .card-header { padding: 18px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
-  .card-title { font-family: var(--font-head); font-size: 16px; font-weight: 600; }
-  table { width: 100%; border-collapse: collapse; }
-  th { padding: 12px 16px; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--text2); background: rgba(255,255,255,0.03); }
-  td { padding: 13px 16px; font-size: 14px; border-top: 1px solid var(--border); }
-  tr:hover td { background: rgba(255,255,255,0.02); }
-  .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
-  .badge.low { background: rgba(230,57,70,0.15); color: var(--red); }
-  .badge.ok { background: rgba(82,183,136,0.15); color: var(--green); }
-  .badge.cloth { background: rgba(123,94,167,0.2); color: #c084fc; }
-  .badge.shoes { background: rgba(76,201,240,0.15); color: var(--blue); }
-
-  /* Buttons */
-  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 18px; border-radius: 9px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; transition: all 0.2s; font-family: var(--font-body); }
-  .btn-primary { background: var(--accent); color: #1a1825; }
-  .btn-primary:hover { background: #f4b87d; }
-  .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
-  .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
-  .btn-danger { background: rgba(230,57,70,0.15); color: var(--red); border: 1px solid rgba(230,57,70,0.2); }
-  .btn-sm { padding: 5px 12px; font-size: 12px; }
-
-  /* Modal */
-  .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 200; align-items: center; justify-content: center; }
-  .overlay.show { display: flex; }
-  .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: 28px; width: 460px; max-height: 85vh; overflow-y: auto; }
-  .modal h2 { font-family: var(--font-head); font-size: 20px; margin-bottom: 20px; }
-  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-  .form-group { display: flex; flex-direction: column; gap: 6px; }
-  .form-group.full { grid-column: 1/-1; }
-  label { font-size: 12px; color: var(--text2); font-weight: 500; }
-  input, select, textarea {
-    background: var(--bg); border: 1px solid var(--border); color: var(--text);
-    padding: 10px 14px; border-radius: 9px; font-size: 14px; font-family: var(--font-body);
-    transition: border-color 0.2s; width: 100%;
-  }
-  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); }
-  select option { background: var(--surface); }
-  .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
-
-  /* Dashboard charts */
-  .charts-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
-  .bar-chart { display: flex; align-items: flex-end; gap: 8px; height: 120px; padding: 0 4px; }
-  .bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; height: 100%; justify-content: flex-end; }
-  .bar { width: 100%; border-radius: 6px 6px 0 0; transition: opacity 0.2s; min-height: 4px; }
-  .bar:hover { opacity: 0.8; }
-  .bar-label { font-size: 10px; color: var(--text2); }
-  .bar-val { font-size: 10px; color: var(--text2); }
-  .profit-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); }
-  .profit-row:last-child { border-bottom: none; }
-
-  /* Empty state */
-  .empty { text-align: center; padding: 48px; color: var(--text2); }
-  .empty .big { font-size: 40px; margin-bottom: 12px; }
-  .empty p { font-size: 14px; }
-
-  /* Alert */
-  .alert { padding: 12px 16px; border-radius: 10px; font-size: 13px; margin-bottom: 16px; display: none; }
-  .alert.success { background: rgba(82,183,136,0.15); color: var(--green); border: 1px solid rgba(82,183,136,0.3); }
-  .alert.show { display: block; }
-
-  /* Responsive hint */
-  @media (max-width: 900px) {
-    .stats-grid { grid-template-columns: 1fr 1fr; }
-    .charts-row { grid-template-columns: 1fr; }
-  }
-
-  /* ====== LOGIN SCREEN ====== */
-  #login-screen {
-    position: fixed; inset: 0; z-index: 9999;
-    background: var(--bg);
-    display: flex; align-items: center; justify-content: center;
-  }
-  #login-screen.hidden { display: none; }
-  .login-box {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    padding: 40px 36px 36px;
-    width: 380px;
-    box-shadow: 0 24px 64px rgba(0,0,0,0.5);
-  }
-  .login-logo {
-    display: flex; flex-direction: column; align-items: center; gap: 10px;
-    margin-bottom: 28px;
-  }
-  .login-logo-title {
-    font-family: var(--font-head); font-size: 24px; font-weight: 800;
-    color: var(--accent); letter-spacing: 0.5px;
-  }
-  .login-logo-sub {
-    font-size: 11px; font-weight: 500; color: var(--text2);
-    letter-spacing: 2.5px; text-transform: uppercase; margin-top: -4px;
-  }
-  .login-divider {
-    width: 80%; height: 1px;
-    background: linear-gradient(90deg, transparent, var(--accent), transparent);
-    opacity: 0.35; margin: 4px auto 0;
-  }
-  .login-field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
-  .login-field label { font-size: 12px; color: var(--text2); font-weight: 500; letter-spacing: 0.5px; }
-  .login-field input {
-    background: var(--bg); border: 1px solid var(--border); color: var(--text);
-    padding: 12px 16px; border-radius: 10px; font-size: 14px; font-family: var(--font-body);
-    transition: border-color 0.2s; width: 100%;
-  }
-  .login-field input:focus { outline: none; border-color: var(--accent); }
-  .login-btn {
-    width: 100%; padding: 13px; border-radius: 11px; border: none;
-    background: var(--accent); color: #1a1825;
-    font-size: 15px; font-weight: 700; font-family: var(--font-head);
-    cursor: pointer; transition: background 0.2s; margin-top: 4px; letter-spacing: 0.5px;
-  }
-  .login-btn:hover { background: #f4b87d; }
-  .login-btn:active { transform: scale(0.98); }
-  .login-error {
-    background: rgba(230,57,70,0.12); color: var(--red);
-    border: 1px solid rgba(230,57,70,0.25);
-    border-radius: 9px; padding: 10px 14px;
-    font-size: 13px; margin-bottom: 14px; display: none; text-align: center;
-  }
-  .login-error.show { display: block; }
-  .login-shake { animation: shake 0.4s ease; }
-  @keyframes shake {
-    0%,100% { transform: translateX(0); }
-    20% { transform: translateX(-8px); }
-    40% { transform: translateX(8px); }
-    60% { transform: translateX(-5px); }
-    80% { transform: translateX(5px); }
-  }
+:root {
+--bg: #0f0e17; --surface: #1a1825; --surface2: #231f35;
+--accent: #f4a261; --accent2: #e76f51; --green: #52b788;
+--red: #e63946; --blue: #4cc9f0; --purple: #7b5ea7;
+--text: #fffffe; --text2: #a7a3b8; --border: rgba(255,255,255,0.08);
+--radius: 14px; --font-head: 'Baloo 2', cursive; --font-body: 'Noto Sans', sans-serif;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: var(--font-body); min-height: 100vh; display: flex; }
+.sidebar { width: 220px; min-height: 100vh; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; position: fixed; left: 0; top: 0; bottom: 0; z-index: 100; }
+.logo { padding: 20px 20px 14px; font-family: var(--font-head); font-size: 20px; font-weight: 800; color: var(--accent); line-height: 1.2; display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+.logo-img-wrap { width: 100%; display: flex; align-items: center; gap: 10px; }
+.logo-svg { width: 42px; height: 42px; flex-shrink: 0; }
+.logo-text { display: flex; flex-direction: column; }
+.logo-name { font-family: var(--font-head); font-size: 19px; font-weight: 800; color: var(--accent); letter-spacing: 0.5px; }
+.logo-sub { font-size: 10px; font-weight: 500; color: var(--text2); letter-spacing: 2px; text-transform: uppercase; margin-top: 1px; }
+.logo-divider { width: 100%; height: 1px; background: linear-gradient(90deg, var(--accent), transparent); margin-top: 4px; opacity: 0.4; }
+.nav { flex: 1; padding: 8px 12px; display: flex; flex-direction: column; gap: 4px; }
+.nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px; cursor: pointer; font-size: 14px; font-weight: 500; color: var(--text2); transition: all 0.2s; border: none; background: none; width: 100%; text-align: left; }
+.nav-item:hover { background: rgba(244,162,97,0.08); color: var(--text); }
+.nav-item.active { background: rgba(244,162,97,0.15); color: var(--accent); }
+.nav-item .icon { font-size: 18px; width: 22px; text-align: center; }
+.sidebar-footer { padding: 16px; border-top: 1px solid var(--border); font-size: 12px; color: var(--text2); }
+.main { margin-left: 220px; flex: 1; padding: 32px; min-height: 100vh; }
+.page { display: none; }
+.page.active { display: block; }
+.page-header { margin-bottom: 28px; }
+.page-header h1 { font-family: var(--font-head); font-size: 28px; font-weight: 700; }
+.page-header p { color: var(--text2); font-size: 14px; margin-top: 4px; }
+.stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 28px; }
+.stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; position: relative; overflow: hidden; }
+.stat-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; }
+.stat-card.green::before { background: var(--green); }
+.stat-card.orange::before { background: var(--accent); }
+.stat-card.red::before { background: var(--red); }
+.stat-card.blue::before { background: var(--blue); }
+.stat-label { font-size: 12px; color: var(--text2); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+.stat-value { font-family: var(--font-head); font-size: 28px; font-weight: 700; }
+.stat-value.green { color: var(--green); }
+.stat-value.orange { color: var(--accent); }
+.stat-value.red { color: var(--red); }
+.stat-value.blue { color: var(--blue); }
+.stat-sub { font-size: 12px; color: var(--text2); margin-top: 6px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-bottom: 24px; }
+.card-header { padding: 18px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+.card-title { font-family: var(--font-head); font-size: 16px; font-weight: 600; }
+table { width: 100%; border-collapse: collapse; }
+th { padding: 12px 16px; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--text2); background: rgba(255,255,255,0.03); }
+td { padding: 13px 16px; font-size: 14px; border-top: 1px solid var(--border); }
+tr:hover td { background: rgba(255,255,255,0.02); }
+.badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+.badge.low { background: rgba(230,57,70,0.15); color: var(--red); }
+.badge.ok { background: rgba(82,183,136,0.15); color: var(--green); }
+.badge.cloth { background: rgba(123,94,167,0.2); color: #c084fc; }
+.badge.shoes { background: rgba(76,201,240,0.15); color: var(--blue); }
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 18px; border-radius: 9px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; transition: all 0.2s; font-family: var(--font-body); }
+.btn-primary { background: var(--accent); color: #1a1825; }
+.btn-primary:hover { background: #f4b87d; }
+.btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+.btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+.btn-danger { background: rgba(230,57,70,0.15); color: var(--red); border: 1px solid rgba(230,57,70,0.2); }
+.btn-sm { padding: 5px 12px; font-size: 12px; }
+.overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 200; align-items: center; justify-content: center; }
+.overlay.show { display: flex; }
+.modal { background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: 28px; width: 460px; max-height: 85vh; overflow-y: auto; }
+.modal h2 { font-family: var(--font-head); font-size: 20px; margin-bottom: 20px; }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.form-group { display: flex; flex-direction: column; gap: 6px; }
+.form-group.full { grid-column: 1/-1; }
+label { font-size: 12px; color: var(--text2); font-weight: 500; }
+input, select, textarea { background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 10px 14px; border-radius: 9px; font-size: 14px; font-family: var(--font-body); transition: border-color 0.2s; width: 100%; }
+input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); }
+select option { background: var(--surface); }
+.modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+.charts-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+.bar-chart { display: flex; align-items: flex-end; gap: 8px; height: 120px; padding: 0 4px; }
+.bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; height: 100%; justify-content: flex-end; }
+.bar { width: 100%; border-radius: 6px 6px 0 0; transition: opacity 0.2s; min-height: 4px; }
+.bar:hover { opacity: 0.8; }
+.bar-label { font-size: 10px; color: var(--text2); }
+.bar-val { font-size: 10px; color: var(--text2); }
+.profit-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); }
+.profit-row:last-child { border-bottom: none; }
+.empty { text-align: center; padding: 48px; color: var(--text2); }
+.empty .big { font-size: 40px; margin-bottom: 12px; }
+.empty p { font-size: 14px; }
+.alert { padding: 12px 16px; border-radius: 10px; font-size: 13px; margin-bottom: 16px; display: none; }
+.alert.success { background: rgba(82,183,136,0.15); color: var(--green); border: 1px solid rgba(82,183,136,0.3); }
+.alert.show { display: block; }
+/* Sync Status Bar */
+#sync-bar { position: fixed; bottom: 0; left: 220px; right: 0; padding: 8px 20px; font-size: 13px; font-weight: 600; text-align: center; z-index: 999; display: none; transition: all 0.3s; }
+#sync-bar.show { display: block; }
+#sync-bar.green { background: rgba(82,183,136,0.2); color: var(--green); border-top: 1px solid rgba(82,183,136,0.3); }
+#sync-bar.blue { background: rgba(76,201,240,0.15); color: var(--blue); border-top: 1px solid rgba(76,201,240,0.3); }
+#sync-bar.orange { background: rgba(244,162,97,0.15); color: var(--accent); border-top: 1px solid rgba(244,162,97,0.3); }
+#sync-bar.red { background: rgba(230,57,70,0.15); color: var(--red); border-top: 1px solid rgba(230,57,70,0.3); }
+@media (max-width: 900px) { .stats-grid { grid-template-columns: 1fr 1fr; } .charts-row { grid-template-columns: 1fr; } }
+/* LOGIN */
+#login-screen { position: fixed; inset: 0; z-index: 9999; background: var(--bg); display: flex; align-items: center; justify-content: center; }
+#login-screen.hidden { display: none; }
+.login-box { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 40px 36px 36px; width: 380px; box-shadow: 0 24px 64px rgba(0,0,0,0.5); }
+.login-logo { display: flex; flex-direction: column; align-items: center; gap: 10px; margin-bottom: 28px; }
+.login-logo-title { font-family: var(--font-head); font-size: 24px; font-weight: 800; color: var(--accent); letter-spacing: 0.5px; }
+.login-logo-sub { font-size: 11px; font-weight: 500; color: var(--text2); letter-spacing: 2.5px; text-transform: uppercase; margin-top: -4px; }
+.login-divider { width: 80%; height: 1px; background: linear-gradient(90deg, transparent, var(--accent), transparent); opacity: 0.35; margin: 4px auto 0; }
+.login-field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+.login-field label { font-size: 12px; color: var(--text2); font-weight: 500; letter-spacing: 0.5px; }
+.login-field input { background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 12px 16px; border-radius: 10px; font-size: 14px; font-family: var(--font-body); transition: border-color 0.2s; width: 100%; }
+.login-field input:focus { outline: none; border-color: var(--accent); }
+.login-btn { width: 100%; padding: 13px; border-radius: 11px; border: none; background: var(--accent); color: #1a1825; font-size: 15px; font-weight: 700; font-family: var(--font-head); cursor: pointer; transition: background 0.2s; margin-top: 4px; letter-spacing: 0.5px; }
+.login-btn:hover { background: #f4b87d; }
+.login-error { background: rgba(230,57,70,0.12); color: var(--red); border: 1px solid rgba(230,57,70,0.25); border-radius: 9px; padding: 10px 14px; font-size: 13px; margin-bottom: 14px; display: none; text-align: center; }
+.login-error.show { display: block; }
 </style>
 </head>
 <body>
 
-<!-- ====== LOGIN SCREEN ====== -->
+<!-- SYNC STATUS BAR -->
+<div id="sync-bar"></div>
+
+<!-- LOGIN SCREEN -->
 <div id="login-screen">
   <div class="login-box" id="login-box">
     <div class="login-logo">
@@ -239,9 +146,7 @@
       <div class="login-logo-sub">Cloth &amp; Shoes — ERP</div>
       <div class="login-divider"></div>
     </div>
-
     <div class="login-error" id="login-error">❌ ID ya Password galat hai!</div>
-
     <div class="login-field">
       <label>User ID</label>
       <input type="text" id="login-id" placeholder="Apna ID dalein..." autocomplete="username" onkeydown="if(event.key==='Enter')doLogin()">
@@ -250,7 +155,6 @@
       <label>Password</label>
       <input type="password" id="login-pass" placeholder="Password dalein..." autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
     </div>
-
     <button class="login-btn" onclick="doLogin()">🔓 Login Karein</button>
   </div>
 </div>
@@ -259,21 +163,13 @@
 <nav class="sidebar">
   <div class="logo">
     <div class="logo-img-wrap">
-      <!-- SR Collections Logo SVG -->
       <svg class="logo-svg" viewBox="0 0 42 42" xmlns="http://www.w3.org/2000/svg">
-        <!-- Background circle -->
         <circle cx="21" cy="21" r="20" fill="rgba(244,162,97,0.12)" stroke="rgba(244,162,97,0.4)" stroke-width="1.2"/>
-        <!-- Hanger top hook -->
         <path d="M21 7 C21 7 21 5 23 5 C25 5 25 7 23 8.5" stroke="#f4a261" stroke-width="1.4" fill="none" stroke-linecap="round"/>
-        <!-- Hanger body -->
         <path d="M23 8.5 C23 8.5 21 10 21 12" stroke="#f4a261" stroke-width="1.4" fill="none" stroke-linecap="round"/>
-        <!-- Hanger shoulders -->
         <path d="M21 12 L10 22 L32 22 Z" stroke="#f4a261" stroke-width="1.5" fill="rgba(244,162,97,0.15)" stroke-linejoin="round"/>
-        <!-- Shirt body outline -->
         <rect x="13" y="22" width="16" height="12" rx="2" fill="rgba(244,162,97,0.18)" stroke="#f4a261" stroke-width="1.3"/>
-        <!-- SR monogram on shirt -->
         <text x="21" y="31.5" font-family="'Baloo 2', sans-serif" font-size="7.5" font-weight="800" fill="#f4a261" text-anchor="middle" letter-spacing="0.5">SR</text>
-        <!-- Small shoe accent -->
         <ellipse cx="33" cy="33" rx="4.5" ry="2.5" fill="rgba(76,201,240,0.25)" stroke="#4cc9f0" stroke-width="1"/>
         <path d="M29.5 33 L33 30.5 L36.5 33" stroke="#4cc9f0" stroke-width="1" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
@@ -297,14 +193,13 @@
   </div>
   <div class="sidebar-footer">
     <div id="logged-in-user" style="font-size:12px;color:var(--accent);font-weight:600;margin-bottom:6px;display:none"></div>
-    v2.0 — SR Collections<br>
+    v3.0 — SR Collections<br>
     <button onclick="doLogout()" style="margin-top:6px;background:rgba(230,57,70,0.12);color:var(--red);border:1px solid rgba(230,57,70,0.2);border-radius:7px;padding:5px 12px;font-size:12px;cursor:pointer;font-family:var(--font-body);width:100%;">🔒 Logout</button>
   </div>
 </nav>
 
 <!-- Main Content -->
 <main class="main">
-
   <!-- DASHBOARD -->
   <div id="page-dashboard" class="page active">
     <div class="page-header">
@@ -312,46 +207,24 @@
       <p id="dash-date" style="color:var(--text2);font-size:14px;margin-top:4px;"></p>
     </div>
     <div class="stats-grid">
-      <div class="stat-card green">
-        <div class="stat-label">Aaj ki Bikri</div>
-        <div class="stat-value green" id="d-today-sale">₹0</div>
-        <div class="stat-sub" id="d-today-items">0 items</div>
-      </div>
-      <div class="stat-card orange">
-        <div class="stat-label">Total Stock Value</div>
-        <div class="stat-value orange" id="d-stock-val">₹0</div>
-        <div class="stat-sub" id="d-stock-items">0 products</div>
-      </div>
-      <div class="stat-card blue">
-        <div class="stat-label">Is Mahine Profit</div>
-        <div class="stat-value blue" id="d-month-profit">₹0</div>
-        <div class="stat-sub" id="d-month-sales">0 sales</div>
-      </div>
-      <div class="stat-card red">
-        <div class="stat-label">Low Stock Alert</div>
-        <div class="stat-value red" id="d-low-stock">0</div>
-        <div class="stat-sub">items kam hain</div>
-      </div>
+      <div class="stat-card green"><div class="stat-label">Aaj ki Bikri</div><div class="stat-value green" id="d-today-sale">₹0</div><div class="stat-sub" id="d-today-items">0 sales aaj</div></div>
+      <div class="stat-card orange"><div class="stat-label">Total Stock Value</div><div class="stat-value orange" id="d-stock-val">₹0</div><div class="stat-sub" id="d-stock-items">0 products</div></div>
+      <div class="stat-card blue"><div class="stat-label">Is Mahine Profit</div><div class="stat-value blue" id="d-month-profit">₹0</div><div class="stat-sub" id="d-month-sales">0 sales this month</div></div>
+      <div class="stat-card red"><div class="stat-label">Low Stock Alert</div><div class="stat-value red" id="d-low-stock">0</div><div class="stat-sub">items kam hain</div></div>
     </div>
     <div class="charts-row">
       <div class="card">
         <div class="card-header"><span class="card-title">Pichle 7 Din ki Bikri</span></div>
-        <div style="padding:16px 20px 20px;">
-          <div class="bar-chart" id="sales-chart"></div>
-        </div>
+        <div style="padding:16px 20px 20px;"><div class="bar-chart" id="sales-chart"></div></div>
       </div>
       <div class="card">
         <div class="card-header"><span class="card-title">Top Selling Products</span></div>
-        <div style="padding:8px 20px;" id="top-products">
-          <div class="empty"><p>Abhi koi sale nahi</p></div>
-        </div>
+        <div style="padding:8px 20px;" id="top-products"><div class="empty"><p>Abhi koi sale nahi</p></div></div>
       </div>
     </div>
     <div class="card">
       <div class="card-header"><span class="card-title">Aaj ki Activity</span></div>
-      <div style="padding:8px 20px 16px;" id="today-activity">
-        <div class="empty"><p>Aaj koi transaction nahi</p></div>
-      </div>
+      <div style="padding:8px 20px 16px;" id="today-activity"><div class="empty"><p>Aaj koi transaction nahi</p></div></div>
     </div>
   </div>
 
@@ -457,7 +330,7 @@
     <div class="card">
       <div class="card-header"><span class="card-title" id="staff-count">Staff (0)</span></div>
       <table>
-        <thead><tr><th>Naam</th><th>Role</th><th>Phone</th><th>Monthly Salary</th><th>Join Date</th><th>Is Mahine</th></tr></thead>
+        <thead><tr><th>Naam</th><th>Role</th><th>Phone</th><th>Monthly Salary</th><th>Join Date</th><th>Action</th></tr></thead>
         <tbody id="staff-table"><tr><td colspan="6"><div class="empty"><div class="big">👨‍💼</div><p>Koi staff nahi</p></div></td></tr></tbody>
       </table>
     </div>
@@ -480,14 +353,8 @@
       <div class="stat-card blue"><div class="stat-label">Net Profit</div><div class="stat-value blue" id="p-net">₹0</div></div>
     </div>
     <div class="charts-row">
-      <div class="card">
-        <div class="card-header"><span class="card-title">Product-wise Profit</span></div>
-        <div style="padding:8px 20px 16px;" id="product-profit"></div>
-      </div>
-      <div class="card">
-        <div class="card-header"><span class="card-title">Category-wise Profit</span></div>
-        <div style="padding:8px 20px 16px;" id="cat-profit"></div>
-      </div>
+      <div class="card"><div class="card-header"><span class="card-title">Product-wise Profit</span></div><div style="padding:8px 20px 16px;" id="product-profit"></div></div>
+      <div class="card"><div class="card-header"><span class="card-title">Category-wise Profit</span></div><div style="padding:8px 20px 16px;" id="cat-profit"></div></div>
     </div>
   </div>
 
@@ -495,30 +362,17 @@
   <div id="page-settings" class="page">
     <div class="page-header"><h1>Settings ⚙️</h1><p>Password aur users manage karein</p></div>
     <div class="alert success" id="settings-alert" style="display:none"></div>
-
-    <!-- Current logged in user — change own password -->
     <div class="card" style="margin-bottom:20px">
       <div class="card-header"><span class="card-title">🔑 Apna Password Badlein</span></div>
       <div style="padding:20px;max-width:420px">
         <div style="display:flex;flex-direction:column;gap:14px">
-          <div class="form-group">
-            <label>Purana Password</label>
-            <input type="password" id="cp-old" placeholder="Purana password...">
-          </div>
-          <div class="form-group">
-            <label>Naya Password</label>
-            <input type="password" id="cp-new" placeholder="Naya password...">
-          </div>
-          <div class="form-group">
-            <label>Naya Password Confirm Karein</label>
-            <input type="password" id="cp-confirm" placeholder="Dobara dalein...">
-          </div>
+          <div class="form-group"><label>Purana Password</label><input type="password" id="cp-old" placeholder="Purana password..."></div>
+          <div class="form-group"><label>Naya Password</label><input type="password" id="cp-new" placeholder="Naya password..."></div>
+          <div class="form-group"><label>Confirm Password</label><input type="password" id="cp-confirm" placeholder="Dobara dalein..."></div>
           <button class="btn btn-primary" onclick="changeOwnPassword()">✅ Password Badlo</button>
         </div>
       </div>
     </div>
-
-    <!-- Admin only: manage all users -->
     <div id="admin-user-section">
       <div class="card">
         <div class="card-header" style="display:flex;align-items:center;justify-content:space-between">
@@ -532,30 +386,16 @@
       </div>
     </div>
   </div>
-
 </main>
 
-<!-- Add User Modal -->
+<!-- MODALS -->
 <div class="overlay" id="add-user-modal">
   <div class="modal" style="width:380px">
     <h2>➕ Naya User Add Karein</h2>
     <div style="display:flex;flex-direction:column;gap:14px">
-      <div class="form-group">
-        <label>User ID *</label>
-        <input type="text" id="nu-id" placeholder="e.g. manager1">
-      </div>
-      <div class="form-group">
-        <label>Password *</label>
-        <input type="password" id="nu-pass" placeholder="Password...">
-      </div>
-      <div class="form-group">
-        <label>Role</label>
-        <select id="nu-role">
-          <option value="staff">Staff</option>
-          <option value="manager">Manager</option>
-          <option value="admin">Admin</option>
-        </select>
-      </div>
+      <div class="form-group"><label>User ID *</label><input type="text" id="nu-id" placeholder="e.g. manager1"></div>
+      <div class="form-group"><label>Password *</label><input type="password" id="nu-pass" placeholder="Password..."></div>
+      <div class="form-group"><label>Role</label><select id="nu-role"><option value="staff">Staff</option><option value="manager">Manager</option><option value="admin">Admin</option></select></div>
     </div>
     <div class="modal-actions">
       <button class="btn btn-secondary" onclick="closeModal('add-user-modal')">Cancel</button>
@@ -564,20 +404,13 @@
   </div>
 </div>
 
-<!-- Change Other User Password Modal -->
 <div class="overlay" id="change-pass-modal">
   <div class="modal" style="width:380px">
     <h2>🔑 Password Badlein</h2>
     <p id="cp-modal-user" style="color:var(--accent);font-size:14px;margin-bottom:16px;font-weight:600"></p>
     <div style="display:flex;flex-direction:column;gap:14px">
-      <div class="form-group">
-        <label>Naya Password *</label>
-        <input type="password" id="cpm-new" placeholder="Naya password...">
-      </div>
-      <div class="form-group">
-        <label>Confirm Password *</label>
-        <input type="password" id="cpm-confirm" placeholder="Dobara dalein...">
-      </div>
+      <div class="form-group"><label>Naya Password *</label><input type="password" id="cpm-new" placeholder="Naya password..."></div>
+      <div class="form-group"><label>Confirm Password *</label><input type="password" id="cpm-confirm" placeholder="Dobara dalein..."></div>
     </div>
     <div class="modal-actions">
       <button class="btn btn-secondary" onclick="closeModal('change-pass-modal')">Cancel</button>
@@ -586,19 +419,14 @@
   </div>
 </div>
 
-<!-- ====== MODALS ====== -->
-
-<!-- Product Modal -->
 <div class="overlay" id="product-modal">
   <div class="modal">
     <h2>🏷️ Naya Product Add Karein</h2>
     <div class="form-grid">
       <div class="form-group"><label>Product Code *</label><input id="p-code" placeholder="e.g. C001, S005"></div>
-      <div class="form-group"><label>Category *</label>
-        <select id="p-cat"><option value="Cloth">Cloth</option><option value="Shoes">Shoes</option></select>
-      </div>
-      <div class="form-group full"><label>Product Naam *</label><input id="p-name" placeholder="e.g. Cotton Kurta Blue, Nike Air Size 9"></div>
-      <div class="form-group"><label>Size / Type</label><input id="p-size" placeholder="e.g. M, L, XL, Size 8"></div>
+      <div class="form-group"><label>Category *</label><select id="p-cat"><option value="Cloth">Cloth</option><option value="Shoes">Shoes</option></select></div>
+      <div class="form-group full"><label>Product Naam *</label><input id="p-name" placeholder="e.g. Cotton Kurta Blue"></div>
+      <div class="form-group"><label>Size / Type</label><input id="p-size" placeholder="e.g. M, L, XL"></div>
       <div class="form-group"><label>Unit</label><input id="p-unit" placeholder="piece / pair" value="piece"></div>
       <div class="form-group"><label>Sale Price (₹) *</label><input id="p-sprice" type="number" placeholder="0"></div>
       <div class="form-group"><label>Purchase Price (₹) *</label><input id="p-pprice" type="number" placeholder="0"></div>
@@ -612,22 +440,16 @@
   </div>
 </div>
 
-<!-- Purchase Modal -->
 <div class="overlay" id="purchase-modal">
   <div class="modal">
     <h2>🛒 Naya Purchase</h2>
-    <div id="pu-no-product-warn" style="display:none;background:rgba(230,57,70,0.12);border:1px solid rgba(230,57,70,0.3);border-radius:10px;padding:12px 16px;margin-bottom:14px;font-size:13px;color:var(--red);">
-      ⚠️ Koi product nahi mila! Pehle <strong style="cursor:pointer;text-decoration:underline;" onclick="closeModal('purchase-modal');showPage('products');openModal('product-modal')">Products page pe product add karein</strong>, phir purchase karein.
-    </div>
     <div class="form-grid">
       <div class="form-group"><label>Date *</label><input id="pu-date" type="date"></div>
       <div class="form-group"><label>Supplier Naam *</label><input id="pu-supplier" placeholder="Supplier ka naam"></div>
       <div class="form-group"><label>Product *</label><select id="pu-product"></select></div>
       <div class="form-group"><label>Quantity *</label><input id="pu-qty" type="number" placeholder="0" min="1"></div>
       <div class="form-group"><label>Unit Cost (₹) *</label><input id="pu-cost" type="number" placeholder="0"></div>
-      <div class="form-group"><label>Payment Status</label>
-        <select id="pu-payment"><option>Paid</option><option>Unpaid</option><option>Partial</option></select>
-      </div>
+      <div class="form-group"><label>Payment Status</label><select id="pu-payment"><option>Paid</option><option>Unpaid</option><option>Partial</option></select></div>
       <div class="form-group full"><label>Note</label><input id="pu-note" placeholder="Optional"></div>
     </div>
     <div style="padding:12px 0;font-size:14px;color:var(--text2)">Total: <strong id="pu-total" style="color:var(--accent)">₹0</strong></div>
@@ -638,7 +460,6 @@
   </div>
 </div>
 
-<!-- Sale Modal -->
 <div class="overlay" id="sale-modal">
   <div class="modal">
     <h2>💰 Naya Sale</h2>
@@ -649,9 +470,7 @@
       <div class="form-group"><label>Quantity *</label><input id="sa-qty" type="number" placeholder="0" min="1" oninput="calcSaleTotal()"></div>
       <div class="form-group"><label>Sale Price (₹) *</label><input id="sa-price" type="number" placeholder="0" oninput="calcSaleTotal()"></div>
       <div class="form-group"><label>Discount (₹)</label><input id="sa-discount" type="number" placeholder="0" value="0" oninput="calcSaleTotal()"></div>
-      <div class="form-group"><label>Payment Status</label>
-        <select id="sa-payment"><option>Paid</option><option>Unpaid</option><option>Partial</option></select>
-      </div>
+      <div class="form-group"><label>Payment Status</label><select id="sa-payment"><option>Paid</option><option>Unpaid</option><option>Partial</option></select></div>
     </div>
     <div style="padding:12px 0;font-size:14px;color:var(--text2)">Total: <strong id="sa-total" style="color:var(--green)">₹0</strong> &nbsp;|&nbsp; Profit: <strong id="sa-profit-preview" style="color:var(--blue)">₹0</strong></div>
     <div class="modal-actions">
@@ -661,17 +480,13 @@
   </div>
 </div>
 
-<!-- Expense Modal -->
 <div class="overlay" id="expense-modal">
   <div class="modal">
     <h2>💸 Naya Kharcha</h2>
     <div class="form-grid">
       <div class="form-group"><label>Date *</label><input id="ex-date" type="date"></div>
       <div class="form-group"><label>Category *</label>
-        <select id="ex-cat">
-          <option>Rent</option><option>Bijli / Electricity</option><option>Transport</option>
-          <option>Repair</option><option>Advertisement</option><option>Other</option>
-        </select>
+        <select id="ex-cat"><option>Rent</option><option>Bijli / Electricity</option><option>Transport</option><option>Repair</option><option>Advertisement</option><option>Other</option></select>
       </div>
       <div class="form-group full"><label>Description</label><input id="ex-desc" placeholder="Kharche ka description"></div>
       <div class="form-group"><label>Amount (₹) *</label><input id="ex-amount" type="number" placeholder="0"></div>
@@ -683,15 +498,12 @@
   </div>
 </div>
 
-<!-- Staff Modal -->
 <div class="overlay" id="staff-modal">
   <div class="modal">
     <h2>👨‍💼 Naya Staff Add Karein</h2>
     <div class="form-grid">
       <div class="form-group full"><label>Naam *</label><input id="st-name" placeholder="Employee ka naam"></div>
-      <div class="form-group"><label>Role</label>
-        <select id="st-role"><option>Salesman</option><option>Manager</option><option>Helper</option><option>Accountant</option><option>Other</option></select>
-      </div>
+      <div class="form-group"><label>Role</label><select id="st-role"><option>Salesman</option><option>Manager</option><option>Helper</option><option>Accountant</option><option>Other</option></select></div>
       <div class="form-group"><label>Phone</label><input id="st-phone" placeholder="Mobile number"></div>
       <div class="form-group"><label>Monthly Salary (₹) *</label><input id="st-salary" type="number" placeholder="0"></div>
       <div class="form-group"><label>Join Date</label><input id="st-join" type="date"></div>
@@ -703,7 +515,6 @@
   </div>
 </div>
 
-<!-- Salary Modal -->
 <div class="overlay" id="salary-modal">
   <div class="modal">
     <h2>💳 Salary Do</h2>
@@ -711,7 +522,7 @@
       <div class="form-group"><label>Date *</label><input id="sl-date" type="date"></div>
       <div class="form-group"><label>Staff *</label><select id="sl-staff"></select></div>
       <div class="form-group"><label>Amount (₹) *</label><input id="sl-amount" type="number" placeholder="0"></div>
-      <div class="form-group"><label>Note</label><input id="sl-note" placeholder="e.g. June 2025 salary"></div>
+      <div class="form-group"><label>Note</label><input id="sl-note" placeholder="e.g. June salary"></div>
     </div>
     <div class="modal-actions">
       <button class="btn btn-secondary" onclick="closeModal('salary-modal')">Cancel</button>
@@ -721,97 +532,118 @@
 </div>
 
 <script>
+// ====== SUPABASE SETUP ======
+const SUPABASE_URL = 'https://rdfenvaygprunexpyvbo.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_LRq7dGlrzlrmFSsSQNr8KA_kLHBbGaj';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
 // ====== DATA STORE ======
-let DB = {
-  products: [],
-  purchases: [],
-  sales: [],
-  expenses: [],
-  staff: [],
-  salaries: []
-};
+let DB = { products: [], purchases: [], sales: [], expenses: [], staff: [], salaries: [] };
+let currentUser = null;
 
-const API_URL = 'https://script.google.com/macros/s/AKfycbygywXYl1byWr2cmK6NxiAItbCqED5DFe5EgE6rINL8MXsRiDeUYxwtncH1mLZgnHLY/exec';
-
-// Local cache bhi rakhte hain backup ke liye
-function saveLocal() { try { localStorage.setItem('dukan-erp', JSON.stringify(DB)); } catch(e) {} }
-function loadLocal() { try { const d = localStorage.getItem('dukan-erp'); if (d) DB = JSON.parse(d); } catch(e) {} }
-
-function save() {
-  saveLocal(); // turant local save
-  fetch(API_URL, {
-    method: 'POST',
-    body: JSON.stringify({ action: 'save', db: DB })
-  }).then(r => r.json()).then(d => {
-    if (d.status === 'ok') showSyncStatus('✅ Sync ho gaya!', 'green');
-    else showSyncStatus('⚠️ Sync error!', 'red');
-  }).catch(() => showSyncStatus('⚠️ Internet nahi — local save hua', 'orange'));
+// ====== SYNC STATUS ======
+function showSync(msg, color, duration = 3000) {
+  const bar = document.getElementById('sync-bar');
+  bar.textContent = msg;
+  bar.className = 'show ' + color;
+  clearTimeout(window._syncT);
+  if (duration > 0) window._syncT = setTimeout(() => { bar.className = ''; }, duration);
 }
 
-async function load() {
-  loadLocal(); // pehle local load karo
-  showSyncStatus('🔄 Data load ho raha hai...', 'blue');
+// ====== SUPABASE LOAD & SAVE ======
+async function loadFromSupabase() {
+  showSync('🔄 Data load ho raha hai...', 'blue', 0);
   try {
-    const r = await fetch(API_URL + '?action=load');
-    const d = await r.json();
-    if (d.status === 'ok' && d.db) {
-      DB = d.db;
-      saveLocal();
-      showSyncStatus('✅ Online data load hua!', 'green');
+    const { data, error } = await sb.from('erp_data').select('*').eq('shop_id', 'sr-collections').single();
+    if (error && error.code !== 'PGRST116') throw error;
+    if (data && data.db_json) {
+      DB = JSON.parse(data.db_json);
+      try { localStorage.setItem('dukan-erp', data.db_json); } catch(e) {}
+      showSync('✅ Data sync ho gaya! Dono phones update hain.', 'green');
     } else {
-      showSyncStatus('📦 Local data use ho raha hai', 'orange');
+      // Try local
+      try { const loc = localStorage.getItem('dukan-erp'); if (loc) DB = JSON.parse(loc); } catch(e) {}
+      showSync('📦 Pehli baar — local data use ho raha hai', 'orange');
     }
   } catch(e) {
-    showSyncStatus('⚠️ Offline mode — local data', 'orange');
+    try { const loc = localStorage.getItem('dukan-erp'); if (loc) DB = JSON.parse(loc); } catch(e2) {}
+    showSync('⚠️ Offline — local data use ho raha hai', 'orange');
+  }
+  renderCurrentPage();
+}
+
+async function saveToSupabase() {
+  const json = JSON.stringify(DB);
+  try { localStorage.setItem('dukan-erp', json); } catch(e) {}
+  showSync('💾 Save ho raha hai...', 'blue', 0);
+  try {
+    const { error } = await sb.from('erp_data').upsert({
+      shop_id: 'sr-collections',
+      db_json: json,
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'shop_id' });
+    if (error) throw error;
+    showSync('✅ Supabase pe save ho gaya! Dono phones sync hain 🎉', 'green');
+  } catch(e) {
+    showSync('⚠️ Internet nahi — sirf local save hua', 'orange');
   }
 }
 
-function showSyncStatus(msg, color) {
-  let el = document.getElementById('sync-status');
-  if (!el) return;
-  const colors = { green: '#52b788', red: '#e63946', orange: '#f4a261', blue: '#4cc9f0' };
-  el.textContent = msg;
-  el.style.color = colors[color] || colors.green;
-  el.style.display = 'inline';
-  clearTimeout(window._syncTimer);
-  window._syncTimer = setTimeout(() => { el.style.display = 'none'; }, 3000);
+function save() { saveToSupabase(); }
+
+// ====== USERS (localStorage mein) ======
+function getUsers() {
+  try { return JSON.parse(localStorage.getItem('erp-users') || 'null') || [{ id: 'admin', pass: 'admin123', role: 'admin' }]; } catch(e) { return [{ id: 'admin', pass: 'admin123', role: 'admin' }]; }
 }
+function saveUsers(users) { localStorage.setItem('erp-users', JSON.stringify(users)); }
+
+// ====== LOGIN ======
+function doLogin() {
+  const id = document.getElementById('login-id').value.trim();
+  const pass = document.getElementById('login-pass').value;
+  const users = getUsers();
+  const user = users.find(u => u.id === id && u.pass === pass);
+  if (user) {
+    currentUser = user;
+    document.getElementById('login-screen').classList.add('hidden');
+    document.getElementById('logged-in-user').textContent = '👤 ' + user.id + ' (' + user.role + ')';
+    document.getElementById('logged-in-user').style.display = 'block';
+    if (user.role === 'admin') document.getElementById('settings-nav-btn').style.display = 'flex';
+    loadFromSupabase();
+  } else {
+    document.getElementById('login-error').classList.add('show');
+    setTimeout(() => document.getElementById('login-error').classList.remove('show'), 3000);
+  }
+}
+function doLogout() { currentUser = null; location.reload(); }
 
 // ====== NAVIGATION ======
+let currentPage = 'dashboard';
 function showPage(name) {
+  currentPage = name;
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.getElementById('page-' + name).classList.add('active');
-  document.querySelectorAll('.nav-item').forEach(n => {
-    if (n.getAttribute('onclick').includes("'" + name + "'")) n.classList.add('active');
-  });
-  if (name === 'dashboard') renderDashboard();
-  if (name === 'products') renderProducts();
-  if (name === 'stock') renderStock();
-  if (name === 'purchases') renderPurchases();
-  if (name === 'sales') renderSales();
-  if (name === 'expenses') renderExpenses();
-  if (name === 'staff') renderStaff();
-  if (name === 'profit') renderProfit();
+  document.querySelectorAll('.nav-item').forEach(n => { if (n.getAttribute('onclick') && n.getAttribute('onclick').includes("'" + name + "'")) n.classList.add('active'); });
+  renderCurrentPage();
+}
+function renderCurrentPage() {
+  if (currentPage === 'dashboard') renderDashboard();
+  if (currentPage === 'products') renderProducts();
+  if (currentPage === 'stock') renderStock();
+  if (currentPage === 'purchases') renderPurchases();
+  if (currentPage === 'sales') renderSales();
+  if (currentPage === 'expenses') renderExpenses();
+  if (currentPage === 'staff') renderStaff();
+  if (currentPage === 'profit') renderProfit();
+  if (currentPage === 'settings') renderSettings();
 }
 
 // ====== MODAL ======
 function openModal(id) {
   const today = new Date().toISOString().split('T')[0];
-  if (id === 'purchase-modal') {
-    document.getElementById('pu-date').value = today;
-    populateProductSelect('pu-product');
-    const warn = document.getElementById('pu-no-product-warn');
-    if (DB.products.length === 0) {
-      warn.style.display = 'block';
-    } else {
-      warn.style.display = 'none';
-    }
-  }
-  if (id === 'sale-modal') {
-    document.getElementById('sa-date').value = today;
-    populateProductSelect('sa-product');
-  }
+  if (id === 'purchase-modal') { document.getElementById('pu-date').value = today; populateProductSelect('pu-product'); }
+  if (id === 'sale-modal') { document.getElementById('sa-date').value = today; populateProductSelect('sa-product'); }
   if (id === 'expense-modal') document.getElementById('ex-date').value = today;
   if (id === 'staff-modal') document.getElementById('st-join').value = today;
   if (id === 'salary-modal') {
@@ -822,45 +654,19 @@ function openModal(id) {
   document.getElementById(id).classList.add('show');
 }
 function closeModal(id) { document.getElementById(id).classList.remove('show'); }
-document.querySelectorAll('.overlay').forEach(o => {
-  o.addEventListener('click', e => { if (e.target === o) o.classList.remove('show'); });
-});
-
+document.querySelectorAll('.overlay').forEach(o => { o.addEventListener('click', e => { if (e.target === o) o.classList.remove('show'); }); });
 function populateProductSelect(selId) {
   const sel = document.getElementById(selId);
-  sel.innerHTML = '';
-  if (DB.products.length === 0) {
-    const opt = document.createElement('option');
-    opt.value = '';
-    opt.textContent = '⚠ Pehle Products page pe product add karein';
-    opt.disabled = true;
-    opt.selected = true;
-    sel.appendChild(opt);
-    sel.style.color = 'var(--red)';
-    sel.style.borderColor = 'var(--red)';
-  } else {
-    sel.style.color = '';
-    sel.style.borderColor = '';
-    DB.products.forEach(p => {
-      const opt = document.createElement('option');
-      opt.value = p.id;
-      opt.textContent = `${p.code} — ${p.name} (Stock: ${p.stock})`;
-      sel.appendChild(opt);
-    });
-  }
+  sel.innerHTML = DB.products.length === 0
+    ? '<option value="" disabled selected>⚠ Pehle product add karein</option>'
+    : DB.products.map(p => `<option value="${p.id}">${p.code} — ${p.name} (Stock: ${p.stock})</option>`).join('');
 }
-
-function showAlert(id) {
-  const el = document.getElementById(id);
-  el.classList.add('show');
-  setTimeout(() => el.classList.remove('show'), 2500);
-}
+function showAlert(id) { const el = document.getElementById(id); el.classList.add('show'); setTimeout(() => el.classList.remove('show'), 2500); }
 
 const rupee = n => '₹' + Number(n).toLocaleString('en-IN');
 const uid = () => Date.now() + Math.random().toString(36).slice(2, 6);
-const today = () => new Date().toISOString().split('T')[0];
+const todayStr = () => new Date().toISOString().split('T')[0];
 const thisMonth = () => new Date().toISOString().slice(0, 7);
-const thisYear = () => new Date().getFullYear().toString();
 
 // ====== PRODUCTS ======
 function saveProduct() {
@@ -869,44 +675,19 @@ function saveProduct() {
   const sprice = parseFloat(document.getElementById('p-sprice').value);
   const pprice = parseFloat(document.getElementById('p-pprice').value);
   if (!code || !name || isNaN(sprice) || isNaN(pprice)) return alert('Sab required fields bharein!');
-  DB.products.push({
-    id: uid(), code, name,
-    cat: document.getElementById('p-cat').value,
-    size: document.getElementById('p-size').value,
-    unit: document.getElementById('p-unit').value || 'piece',
-    salePrice: sprice, purchasePrice: pprice,
-    stock: parseInt(document.getElementById('p-stock').value) || 0,
-    reorder: parseInt(document.getElementById('p-reorder').value) || 5
-  });
+  DB.products.push({ id: uid(), code, name, cat: document.getElementById('p-cat').value, size: document.getElementById('p-size').value, unit: document.getElementById('p-unit').value || 'piece', salePrice: sprice, purchasePrice: pprice, stock: parseInt(document.getElementById('p-stock').value) || 0, reorder: parseInt(document.getElementById('p-reorder').value) || 5 });
   save(); closeModal('product-modal'); showAlert('product-alert');
   ['p-code','p-name','p-size','p-sprice','p-pprice','p-stock'].forEach(id => document.getElementById(id).value = '');
   renderProducts();
 }
-
 function renderProducts(filter = '') {
-  const list = DB.products.filter(p =>
-    p.name.toLowerCase().includes(filter.toLowerCase()) || p.code.toLowerCase().includes(filter.toLowerCase())
-  );
+  const list = DB.products.filter(p => p.name.toLowerCase().includes(filter.toLowerCase()) || p.code.toLowerCase().includes(filter.toLowerCase()));
   document.getElementById('product-count').textContent = `Products (${list.length})`;
   const tbody = document.getElementById('products-table');
   if (!list.length) { tbody.innerHTML = `<tr><td colspan="8"><div class="empty"><div class="big">👗</div><p>Koi product nahi</p></div></td></tr>`; return; }
-  tbody.innerHTML = list.map(p => `
-    <tr>
-      <td><code style="color:var(--accent);font-size:12px">${p.code}</code></td>
-      <td><strong>${p.name}</strong></td>
-      <td><span class="badge ${p.cat === 'Cloth' ? 'cloth' : 'shoes'}">${p.cat}</span></td>
-      <td>${p.size || '—'}</td>
-      <td style="color:var(--green)">${rupee(p.salePrice)}</td>
-      <td style="color:var(--text2)">${rupee(p.purchasePrice)}</td>
-      <td><span class="badge ${p.stock <= p.reorder ? 'low' : 'ok'}">${p.stock} ${p.unit}</span></td>
-      <td><button class="btn btn-danger btn-sm" onclick="deleteProduct('${p.id}')">🗑</button></td>
-    </tr>`).join('');
+  tbody.innerHTML = list.map(p => `<tr><td><code style="color:var(--accent);font-size:12px">${p.code}</code></td><td><strong>${p.name}</strong></td><td><span class="badge ${p.cat === 'Cloth' ? 'cloth' : 'shoes'}">${p.cat}</span></td><td>${p.size || '—'}</td><td style="color:var(--green)">${rupee(p.salePrice)}</td><td style="color:var(--text2)">${rupee(p.purchasePrice)}</td><td><span class="badge ${p.stock <= p.reorder ? 'low' : 'ok'}">${p.stock} ${p.unit}</span></td><td><button class="btn btn-danger btn-sm" onclick="deleteProduct('${p.id}')">🗑</button></td></tr>`).join('');
 }
-
-function deleteProduct(id) {
-  if (!confirm('Delete karein?')) return;
-  DB.products = DB.products.filter(p => p.id !== id); save(); renderProducts();
-}
+function deleteProduct(id) { if (!confirm('Delete karein?')) return; DB.products = DB.products.filter(p => p.id !== id); save(); renderProducts(); }
 function filterProducts(v) { renderProducts(v); }
 
 // ====== STOCK ======
@@ -917,16 +698,7 @@ function renderStock() {
   document.getElementById('s-val').textContent = rupee(prods.reduce((a, p) => a + p.stock * p.purchasePrice, 0));
   const tbody = document.getElementById('stock-table');
   if (!prods.length) { tbody.innerHTML = `<tr><td colspan="7"><div class="empty"><p>Pehle products add karein</p></div></td></tr>`; return; }
-  tbody.innerHTML = prods.map(p => `
-    <tr>
-      <td><code style="color:var(--accent);font-size:12px">${p.code}</code></td>
-      <td>${p.name}</td>
-      <td><span class="badge ${p.cat === 'Cloth' ? 'cloth' : 'shoes'}">${p.cat}</span></td>
-      <td><strong style="font-size:16px">${p.stock}</strong> ${p.unit}</td>
-      <td>${p.reorder}</td>
-      <td><span class="badge ${p.stock <= p.reorder ? 'low' : 'ok'}">${p.stock <= p.reorder ? '⚠ Low' : '✓ OK'}</span></td>
-      <td style="color:var(--accent)">${rupee(p.stock * p.purchasePrice)}</td>
-    </tr>`).join('');
+  tbody.innerHTML = prods.map(p => `<tr><td><code style="color:var(--accent);font-size:12px">${p.code}</code></td><td>${p.name}</td><td><span class="badge ${p.cat === 'Cloth' ? 'cloth' : 'shoes'}">${p.cat}</span></td><td><strong style="font-size:16px">${p.stock}</strong> ${p.unit}</td><td>${p.reorder}</td><td><span class="badge ${p.stock <= p.reorder ? 'low' : 'ok'}">${p.stock <= p.reorder ? '⚠ Low' : '✓ OK'}</span></td><td style="color:var(--accent)">${rupee(p.stock * p.purchasePrice)}</td></tr>`).join('');
 }
 
 // ====== PURCHASES ======
@@ -937,42 +709,26 @@ function savePurchase() {
   const qty = parseInt(document.getElementById('pu-qty').value);
   const cost = parseFloat(document.getElementById('pu-cost').value);
   if (!qty || !cost) return alert('Quantity aur cost bharein!');
-  const purchase = {
-    id: uid(),
-    date: document.getElementById('pu-date').value,
-    supplier: document.getElementById('pu-supplier').value || 'Unknown',
-    productId: prod.id, productName: prod.name,
-    qty, cost, total: qty * cost,
-    payment: document.getElementById('pu-payment').value,
-    note: document.getElementById('pu-note').value
-  };
-  DB.purchases.push(purchase);
+  DB.purchases.push({ id: uid(), date: document.getElementById('pu-date').value, supplier: document.getElementById('pu-supplier').value || 'Unknown', productId: prod.id, productName: prod.name, qty, cost, total: qty * cost, payment: document.getElementById('pu-payment').value, note: document.getElementById('pu-note').value });
   prod.stock += qty;
-  save(); closeModal('purchase-modal'); showAlert('purchase-alert');
-  renderPurchases();
+  save(); closeModal('purchase-modal'); showAlert('purchase-alert'); renderPurchases();
 }
-
-document.getElementById('pu-qty').addEventListener('input', calcPurchaseTotal);
-document.getElementById('pu-cost').addEventListener('input', calcPurchaseTotal);
-function calcPurchaseTotal() {
+document.getElementById('pu-qty').addEventListener('input', () => {
   const q = parseFloat(document.getElementById('pu-qty').value) || 0;
   const c = parseFloat(document.getElementById('pu-cost').value) || 0;
   document.getElementById('pu-total').textContent = rupee(q * c);
-}
-
+});
+document.getElementById('pu-cost').addEventListener('input', () => {
+  const q = parseFloat(document.getElementById('pu-qty').value) || 0;
+  const c = parseFloat(document.getElementById('pu-cost').value) || 0;
+  document.getElementById('pu-total').textContent = rupee(q * c);
+});
 function renderPurchases() {
   const list = [...DB.purchases].reverse();
   document.getElementById('purchase-count').textContent = `Purchases (${list.length})`;
   const tbody = document.getElementById('purchases-table');
   if (!list.length) { tbody.innerHTML = `<tr><td colspan="5"><div class="empty"><div class="big">🛒</div><p>Koi purchase nahi</p></div></td></tr>`; return; }
-  tbody.innerHTML = list.map(p => `
-    <tr>
-      <td>${p.date}</td>
-      <td>${p.supplier}</td>
-      <td>${p.productName} × ${p.qty}</td>
-      <td style="color:var(--accent)">${rupee(p.total)}</td>
-      <td><span class="badge ${p.payment === 'Paid' ? 'ok' : 'low'}">${p.payment}</span></td>
-    </tr>`).join('');
+  tbody.innerHTML = list.map(p => `<tr><td>${p.date}</td><td>${p.supplier}</td><td>${p.productName} × ${p.qty}</td><td style="color:var(--accent)">${rupee(p.total)}</td><td><span class="badge ${p.payment === 'Paid' ? 'ok' : 'low'}">${p.payment}</span></td></tr>`).join('');
 }
 
 // ====== SALES ======
@@ -992,7 +748,6 @@ function calcSaleTotal() {
   const profit = prod ? total - (q * prod.purchasePrice) : 0;
   document.getElementById('sa-profit-preview').textContent = rupee(profit);
 }
-
 function saveSale() {
   const pid = document.getElementById('sa-product').value;
   const prod = DB.products.find(p => p.id === pid);
@@ -1001,76 +756,39 @@ function saveSale() {
   const price = parseFloat(document.getElementById('sa-price').value);
   const disc = parseFloat(document.getElementById('sa-discount').value) || 0;
   if (!qty || !price) return alert('Quantity aur price bharein!');
-  if (prod.stock < qty) return alert(`Stock sirf ${prod.stock} hai!`);
+  if (prod.stock < qty) return alert('Stock kam hai! Available: ' + prod.stock);
   const total = (qty * price) - disc;
   const profit = total - (qty * prod.purchasePrice);
-  const sale = {
-    id: uid(),
-    date: document.getElementById('sa-date').value,
-    customer: document.getElementById('sa-customer').value || 'Walk-in',
-    productId: prod.id, productName: prod.name, productCat: prod.cat,
-    qty, price, discount: disc, total, profit,
-    purchasePrice: prod.purchasePrice,
-    payment: document.getElementById('sa-payment').value
-  };
-  DB.sales.push(sale);
+  DB.sales.push({ id: uid(), date: document.getElementById('sa-date').value, customer: document.getElementById('sa-customer').value || 'Walk-in', productId: prod.id, productName: prod.name, qty, price, discount: disc, total, profit, payment: document.getElementById('sa-payment').value });
   prod.stock -= qty;
-  save(); closeModal('sale-modal'); showAlert('sale-alert');
-  renderSales();
+  save(); closeModal('sale-modal'); showAlert('sale-alert'); renderSales();
 }
-
 function renderSales() {
   const list = [...DB.sales].reverse();
   document.getElementById('sale-count').textContent = `Sales (${list.length})`;
   const tbody = document.getElementById('sales-table');
   if (!list.length) { tbody.innerHTML = `<tr><td colspan="6"><div class="empty"><div class="big">💰</div><p>Koi sale nahi</p></div></td></tr>`; return; }
-  tbody.innerHTML = list.map(s => `
-    <tr>
-      <td>${s.date}</td>
-      <td>${s.customer}</td>
-      <td>${s.productName} × ${s.qty}</td>
-      <td style="color:var(--green)">${rupee(s.total)}</td>
-      <td style="color:${s.profit >= 0 ? 'var(--blue)' : 'var(--red)'}">${rupee(s.profit)}</td>
-      <td><span class="badge ${s.payment === 'Paid' ? 'ok' : 'low'}">${s.payment}</span></td>
-    </tr>`).join('');
+  tbody.innerHTML = list.map(s => `<tr><td>${s.date}</td><td>${s.customer}</td><td>${s.productName} × ${s.qty}</td><td style="color:var(--green)">${rupee(s.total)}</td><td style="color:${s.profit >= 0 ? 'var(--blue)' : 'var(--red)'}">${rupee(s.profit)}</td><td><span class="badge ${s.payment === 'Paid' ? 'ok' : 'low'}">${s.payment}</span></td></tr>`).join('');
 }
 
 // ====== EXPENSES ======
 function saveExpense() {
   const amount = parseFloat(document.getElementById('ex-amount').value);
   if (!amount) return alert('Amount bharein!');
-  DB.expenses.push({
-    id: uid(),
-    date: document.getElementById('ex-date').value,
-    cat: document.getElementById('ex-cat').value,
-    desc: document.getElementById('ex-desc').value || '',
-    amount
-  });
-  save(); closeModal('expense-modal'); showAlert('expense-alert');
-  document.getElementById('ex-amount').value = '';
-  document.getElementById('ex-desc').value = '';
-  renderExpenses();
+  DB.expenses.push({ id: uid(), date: document.getElementById('ex-date').value, cat: document.getElementById('ex-cat').value, desc: document.getElementById('ex-desc').value, amount });
+  save(); closeModal('expense-modal'); showAlert('expense-alert'); renderExpenses();
 }
-
 function renderExpenses() {
   const list = [...DB.expenses].reverse();
   document.getElementById('expense-count').textContent = `Expenses (${list.length})`;
-  const mo = thisMonth(); const yr = thisYear();
-  const mTotal = DB.expenses.filter(e => e.date.startsWith(mo)).reduce((a, e) => a + e.amount, 0);
-  const yTotal = DB.expenses.filter(e => e.date.startsWith(yr)).reduce((a, e) => a + e.amount, 0);
-  const total = DB.expenses.reduce((a, e) => a + e.amount, 0);
-  document.getElementById('e-month').textContent = rupee(mTotal);
-  document.getElementById('e-year').textContent = rupee(yTotal);
-  document.getElementById('e-total').textContent = rupee(total);
+  const month = thisMonth();
+  const year = new Date().getFullYear().toString();
+  document.getElementById('e-month').textContent = rupee(DB.expenses.filter(e => e.date.startsWith(month)).reduce((a, e) => a + e.amount, 0));
+  document.getElementById('e-year').textContent = rupee(DB.expenses.filter(e => e.date.startsWith(year)).reduce((a, e) => a + e.amount, 0));
+  document.getElementById('e-total').textContent = rupee(DB.expenses.reduce((a, e) => a + e.amount, 0));
   const tbody = document.getElementById('expenses-table');
   if (!list.length) { tbody.innerHTML = `<tr><td colspan="4"><div class="empty"><div class="big">💸</div><p>Koi expense nahi</p></div></td></tr>`; return; }
-  tbody.innerHTML = list.map(e => `
-    <tr>
-      <td>${e.date}</td>
-      <td><span class="badge low">${e.cat}</span></td>
-      <td>${e.desc || '—'}</td>
-      <td style="color:var(--red)">${rupee(e.amount)}</td>
-    </tr>`).join('');
+  tbody.innerHTML = list.map(e => `<tr><td>${e.date}</td><td>${e.cat}</td><td>${e.desc || '—'}</td><td style="color:var(--red)">${rupee(e.amount)}</td></tr>`).join('');
 }
 
 // ====== STAFF ======
@@ -1078,333 +796,150 @@ function saveStaff() {
   const name = document.getElementById('st-name').value.trim();
   const salary = parseFloat(document.getElementById('st-salary').value);
   if (!name || !salary) return alert('Naam aur salary bharein!');
-  DB.staff.push({
-    id: uid(), name,
-    role: document.getElementById('st-role').value,
-    phone: document.getElementById('st-phone').value,
-    salary,
-    join: document.getElementById('st-join').value
-  });
-  save(); closeModal('staff-modal'); showAlert('staff-alert');
-  document.getElementById('st-name').value = ''; document.getElementById('st-phone').value = '';
-  renderStaff();
+  DB.staff.push({ id: uid(), name, role: document.getElementById('st-role').value, phone: document.getElementById('st-phone').value, salary, join: document.getElementById('st-join').value });
+  save(); closeModal('staff-modal'); showAlert('staff-alert'); renderStaff();
 }
-
 function saveSalary() {
   const sid = document.getElementById('sl-staff').value;
   const staff = DB.staff.find(s => s.id === sid);
   if (!staff) return alert('Staff select karein!');
   const amount = parseFloat(document.getElementById('sl-amount').value);
   if (!amount) return alert('Amount bharein!');
-  DB.salaries.push({
-    id: uid(),
-    date: document.getElementById('sl-date').value,
-    staffId: staff.id, staffName: staff.name,
-    amount,
-    note: document.getElementById('sl-note').value
-  });
-  save(); closeModal('salary-modal'); showAlert('staff-alert');
-  renderStaff();
+  DB.salaries.push({ id: uid(), date: document.getElementById('sl-date').value, staffId: staff.id, staffName: staff.name, amount, note: document.getElementById('sl-note').value });
+  save(); closeModal('salary-modal'); showAlert('staff-alert'); renderStaff();
 }
-
 function renderStaff() {
-  const mo = thisMonth();
   document.getElementById('staff-count').textContent = `Staff (${DB.staff.length})`;
   const tbody = document.getElementById('staff-table');
-  if (!DB.staff.length) { tbody.innerHTML = `<tr><td colspan="6"><div class="empty"><div class="big">👨‍💼</div><p>Koi staff nahi</p></div></td></tr>`; return; }
-  tbody.innerHTML = DB.staff.map(s => {
-    const paid = DB.salaries.filter(sl => sl.staffId === s.id && sl.date.startsWith(mo)).reduce((a, sl) => a + sl.amount, 0);
-    const status = paid >= s.salary ? `<span class="badge ok">Paid ✓</span>` : paid > 0 ? `<span class="badge low">Partial (${rupee(paid)})</span>` : `<span class="badge low">Unpaid</span>`;
-    return `<tr>
-      <td><strong>${s.name}</strong></td>
-      <td>${s.role}</td>
-      <td>${s.phone || '—'}</td>
-      <td style="color:var(--green)">${rupee(s.salary)}</td>
-      <td>${s.join || '—'}</td>
-      <td>${status}</td>
-    </tr>`;
-  }).join('');
-  const slBody = document.getElementById('salary-table');
+  if (!DB.staff.length) { tbody.innerHTML = `<tr><td colspan="6"><div class="empty"><div class="big">👨‍💼</div><p>Koi staff nahi</p></div></td></tr>`; }
+  else {
+    const month = thisMonth();
+    tbody.innerHTML = DB.staff.map(s => {
+      const paid = DB.salaries.filter(sl => sl.staffId === s.id && sl.date.startsWith(month)).reduce((a, sl) => a + sl.amount, 0);
+      return `<tr><td><strong>${s.name}</strong></td><td>${s.role}</td><td>${s.phone || '—'}</td><td style="color:var(--green)">${rupee(s.salary)}</td><td>${s.join || '—'}</td><td style="color:${paid >= s.salary ? 'var(--green)' : 'var(--red)'}">${rupee(paid)} / ${rupee(s.salary)}</td></tr>`;
+    }).join('');
+  }
+  const salTbody = document.getElementById('salary-table');
   const salList = [...DB.salaries].reverse();
-  if (!salList.length) { slBody.innerHTML = `<tr><td colspan="4"><div class="empty"><p>Koi salary record nahi</p></div></td></tr>`; return; }
-  slBody.innerHTML = salList.map(sl => `
-    <tr>
-      <td>${sl.date}</td>
-      <td>${sl.staffName}</td>
-      <td style="color:var(--green)">${rupee(sl.amount)}</td>
-      <td>${sl.note || '—'}</td>
-    </tr>`).join('');
+  if (!salList.length) { salTbody.innerHTML = `<tr><td colspan="4"><div class="empty"><p>Koi salary record nahi</p></div></td></tr>`; }
+  else salTbody.innerHTML = salList.map(sl => `<tr><td>${sl.date}</td><td>${sl.staffName}</td><td style="color:var(--green)">${rupee(sl.amount)}</td><td>${sl.note || '—'}</td></tr>`).join('');
 }
 
-// ====== PROFIT REPORT ======
+// ====== PROFIT ======
 function renderProfit() {
   const revenue = DB.sales.reduce((a, s) => a + s.total, 0);
-  const cost = DB.sales.reduce((a, s) => a + s.qty * s.purchasePrice, 0);
+  const purchaseCost = DB.purchases.reduce((a, p) => a + p.total, 0);
   const expenses = DB.expenses.reduce((a, e) => a + e.amount, 0);
-  const salaryTotal = DB.salaries.reduce((a, sl) => a + sl.amount, 0);
-  const totalExp = expenses + salaryTotal;
-  const net = revenue - cost - totalExp;
+  const salaries = DB.salaries.reduce((a, s) => a + s.amount, 0);
+  const net = revenue - purchaseCost - expenses - salaries;
   document.getElementById('p-revenue').textContent = rupee(revenue);
-  document.getElementById('p-purchase').textContent = rupee(cost);
-  document.getElementById('p-expenses').textContent = rupee(totalExp);
+  document.getElementById('p-purchase').textContent = rupee(purchaseCost);
+  document.getElementById('p-expenses').textContent = rupee(expenses + salaries);
   document.getElementById('p-net').textContent = rupee(net);
   document.getElementById('p-net').style.color = net >= 0 ? 'var(--blue)' : 'var(--red)';
-
-  // Product-wise profit
-  const prodProfit = {};
-  DB.sales.forEach(s => {
-    if (!prodProfit[s.productName]) prodProfit[s.productName] = { revenue: 0, cost: 0 };
-    prodProfit[s.productName].revenue += s.total;
-    prodProfit[s.productName].cost += s.qty * s.purchasePrice;
-  });
+  // Product-wise
+  const byProd = {};
+  DB.sales.forEach(s => { byProd[s.productName] = (byProd[s.productName] || 0) + s.profit; });
   const ppEl = document.getElementById('product-profit');
-  const ppList = Object.entries(prodProfit).sort((a, b) => (b[1].revenue - b[1].cost) - (a[1].revenue - a[1].cost));
-  ppEl.innerHTML = ppList.length ? ppList.slice(0, 8).map(([name, d]) => {
-    const profit = d.revenue - d.cost;
-    return `<div class="profit-row">
-      <span style="font-size:13px">${name}</span>
-      <span style="color:${profit >= 0 ? 'var(--blue)' : 'var(--red)'};font-weight:600">${rupee(profit)}</span>
-    </div>`;
-  }).join('') : '<div class="empty"><p>Koi sale nahi</p></div>';
-
+  const ppList = Object.entries(byProd).sort((a, b) => b[1] - a[1]);
+  ppEl.innerHTML = ppList.length ? ppList.map(([name, profit]) => `<div class="profit-row"><span>${name}</span><span style="color:${profit >= 0 ? 'var(--green)' : 'var(--red)'};font-weight:600">${rupee(profit)}</span></div>`).join('') : '<div class="empty"><p>Koi data nahi</p></div>';
   // Category-wise
-  const catProfit = { Cloth: { rev: 0, cost: 0 }, Shoes: { rev: 0, cost: 0 } };
-  DB.sales.forEach(s => {
-    const cat = s.productCat || 'Cloth';
-    if (catProfit[cat]) { catProfit[cat].rev += s.total; catProfit[cat].cost += s.qty * s.purchasePrice; }
-  });
-  document.getElementById('cat-profit').innerHTML = Object.entries(catProfit).map(([cat, d]) => {
-    const profit = d.rev - d.cost;
-    return `<div class="profit-row">
-      <span><span class="badge ${cat === 'Cloth' ? 'cloth' : 'shoes'}">${cat}</span></span>
-      <div style="font-size:13px;text-align:right">
-        <div>Revenue: <span style="color:var(--green)">${rupee(d.rev)}</span></div>
-        <div>Profit: <span style="color:${profit >= 0 ? 'var(--blue)' : 'var(--red)'};font-weight:700">${rupee(profit)}</span></div>
-      </div>
-    </div>`;
-  }).join('');
+  const byCat = {};
+  DB.sales.forEach(s => { const prod = DB.products.find(p => p.id === s.productId); const cat = prod ? prod.cat : 'Other'; byCat[cat] = (byCat[cat] || 0) + s.profit; });
+  const cpEl = document.getElementById('cat-profit');
+  cpEl.innerHTML = Object.entries(byCat).length ? Object.entries(byCat).map(([cat, profit]) => `<div class="profit-row"><span>${cat}</span><span style="color:${profit >= 0 ? 'var(--green)' : 'var(--red)'};font-weight:600">${rupee(profit)}</span></div>`).join('') : '<div class="empty"><p>Koi data nahi</p></div>';
 }
 
 // ====== DASHBOARD ======
 function renderDashboard() {
-  const now = new Date();
-  document.getElementById('dash-date').textContent = now.toLocaleDateString('hi-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-  const tod = today();
-  const todaySales = DB.sales.filter(s => s.date === tod);
-  document.getElementById('d-today-sale').textContent = rupee(todaySales.reduce((a, s) => a + s.total, 0));
+  const today = todayStr();
+  const month = thisMonth();
+  const todaySales = DB.sales.filter(s => s.date === today);
+  const todayRev = todaySales.reduce((a, s) => a + s.total, 0);
+  document.getElementById('d-today-sale').textContent = rupee(todayRev);
   document.getElementById('d-today-items').textContent = todaySales.length + ' sales aaj';
-  document.getElementById('d-stock-val').textContent = rupee(DB.products.reduce((a, p) => a + p.stock * p.purchasePrice, 0));
+  const stockVal = DB.products.reduce((a, p) => a + p.stock * p.purchasePrice, 0);
+  document.getElementById('d-stock-val').textContent = rupee(stockVal);
   document.getElementById('d-stock-items').textContent = DB.products.length + ' products';
-  const mo = thisMonth();
-  const moSales = DB.sales.filter(s => s.date.startsWith(mo));
-  const moProfit = moSales.reduce((a, s) => a + s.profit, 0) - DB.expenses.filter(e => e.date.startsWith(mo)).reduce((a, e) => a + e.amount, 0);
-  document.getElementById('d-month-profit').textContent = rupee(moProfit);
-  document.getElementById('d-month-sales').textContent = moSales.length + ' sales this month';
+  const monthSales = DB.sales.filter(s => s.date.startsWith(month));
+  const monthProfit = monthSales.reduce((a, s) => a + s.profit, 0) - DB.expenses.filter(e => e.date.startsWith(month)).reduce((a, e) => a + e.amount, 0);
+  document.getElementById('d-month-profit').textContent = rupee(monthProfit);
+  document.getElementById('d-month-profit').style.color = monthProfit >= 0 ? 'var(--blue)' : 'var(--red)';
+  document.getElementById('d-month-sales').textContent = monthSales.length + ' sales this month';
   document.getElementById('d-low-stock').textContent = DB.products.filter(p => p.stock <= p.reorder).length;
-
-  // 7-day chart
-  const days = [];
+  // Date display
+  const days = ['Ravivaar', 'Somvaar', 'Mangalvaar', 'Budhvaar', 'Guruvaar', 'Shukravaar', 'Shanivaar'];
+  const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  const now = new Date();
+  document.getElementById('dash-date').textContent = days[now.getDay()] + ', ' + now.getDate() + ' ' + months[now.getMonth()] + ' ' + now.getFullYear();
+  // Bar chart - last 7 days
+  const chart = document.getElementById('sales-chart');
+  const labels = [];
+  const values = [];
   for (let i = 6; i >= 0; i--) {
     const d = new Date(); d.setDate(d.getDate() - i);
     const ds = d.toISOString().split('T')[0];
-    const total = DB.sales.filter(s => s.date === ds).reduce((a, s) => a + s.total, 0);
-    days.push({ label: d.toLocaleDateString('en', { weekday: 'short' }), total });
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    labels.push(dayNames[d.getDay()]);
+    values.push(DB.sales.filter(s => s.date === ds).reduce((a, s) => a + s.total, 0));
   }
-  const max = Math.max(...days.map(d => d.total), 1);
-  document.getElementById('sales-chart').innerHTML = days.map(d => `
-    <div class="bar-wrap">
-      <div class="bar-val">${d.total > 0 ? rupee(d.total).replace('₹', '') : ''}</div>
-      <div class="bar" style="height:${Math.max((d.total / max) * 100, 4)}%;background:${d.label === new Date().toLocaleDateString('en', { weekday: 'short' }) ? 'var(--accent)' : 'var(--purple)'}"></div>
-      <div class="bar-label">${d.label}</div>
-    </div>`).join('');
-
+  const maxVal = Math.max(...values, 1);
+  chart.innerHTML = values.map((v, i) => `<div class="bar-wrap"><div class="bar-val">${v > 0 ? rupee(v) : ''}</div><div class="bar" style="height:${Math.max((v/maxVal)*100, v > 0 ? 8 : 2)}%;background:${v > 0 ? 'var(--purple)' : 'rgba(255,255,255,0.05)'}"></div><div class="bar-label">${labels[i]}</div></div>`).join('');
   // Top products
-  const prodSales = {};
-  DB.sales.forEach(s => { prodSales[s.productName] = (prodSales[s.productName] || 0) + s.qty; });
-  const sorted = Object.entries(prodSales).sort((a, b) => b[1] - a[1]).slice(0, 5);
-  const tpEl = document.getElementById('top-products');
-  tpEl.innerHTML = sorted.length ? sorted.map(([name, qty]) => `
-    <div class="profit-row"><span style="font-size:13px">${name}</span><span style="color:var(--accent);font-weight:600">${qty} sold</span></div>`).join('')
-    : '<div class="empty"><p>Abhi koi sale nahi</p></div>';
-
+  const byProd = {};
+  DB.sales.forEach(s => { byProd[s.productName] = (byProd[s.productName] || 0) + s.qty; });
+  const topEl = document.getElementById('top-products');
+  const top5 = Object.entries(byProd).sort((a, b) => b[1] - a[1]).slice(0, 5);
+  topEl.innerHTML = top5.length ? top5.map(([name, qty]) => `<div class="profit-row"><span>${name}</span><span style="color:var(--accent);font-weight:600">${qty} sold</span></div>`).join('') : '<div class="empty"><p>Abhi koi sale nahi</p></div>';
   // Today activity
-  const taEl = document.getElementById('today-activity');
-  const acts = [...todaySales.map(s => ({ time: s.date, text: `Sale: ${s.productName} × ${s.qty} → ${rupee(s.total)}`, color: 'var(--green)' })),
-    ...DB.purchases.filter(p => p.date === tod).map(p => ({ time: p.date, text: `Purchase: ${p.productName} × ${p.qty} from ${p.supplier}`, color: 'var(--accent)' })),
-    ...DB.expenses.filter(e => e.date === tod).map(e => ({ text: `Expense: ${e.cat} — ${rupee(e.amount)}`, color: 'var(--red)' }))];
-  taEl.innerHTML = acts.length ? acts.map(a => `
-    <div style="padding:10px 0;border-bottom:1px solid var(--border);font-size:13px">
-      <span style="color:${a.color}">●</span> ${a.text}
-    </div>`).join('') : '<div class="empty"><p>Aaj koi transaction nahi</p></div>';
+  const actEl = document.getElementById('today-activity');
+  const acts = [...DB.sales.filter(s => s.date === today).map(s => ({ time: s.id, text: `💰 Sale: ${s.productName} × ${s.qty} — ${rupee(s.total)}`, color: 'var(--green)' })), ...DB.purchases.filter(p => p.date === today).map(p => ({ time: p.id, text: `🛒 Purchase: ${p.productName} × ${p.qty} — ${rupee(p.total)}`, color: 'var(--accent)' })), ...DB.expenses.filter(e => e.date === today).map(e => ({ time: e.id, text: `💸 Expense: ${e.cat} — ${rupee(e.amount)}`, color: 'var(--red)' }))];
+  actEl.innerHTML = acts.length ? acts.map(a => `<div class="profit-row"><span style="color:${a.color}">${a.text}</span></div>`).join('') : '<div class="empty"><p>Aaj koi transaction nahi</p></div>';
 }
 
-// ====== LOGIN & USER MANAGEMENT ======
-
-const DEFAULT_USERS = [
-  { id: 'admin', pass: 'sr123',       role: 'admin'   },
-  { id: 'owner', pass: 'collections', role: 'admin'   },
-  { id: 'staff', pass: 'staff@sr',    role: 'staff'   }
-];
-
-function loadUsers() {
-  const saved = localStorage.getItem('sr_users');
-  return saved ? JSON.parse(saved) : JSON.parse(JSON.stringify(DEFAULT_USERS));
+// ====== SETTINGS ======
+function renderSettings() {
+  if (!currentUser || currentUser.role !== 'admin') { document.getElementById('admin-user-section').style.display = 'none'; return; }
+  document.getElementById('admin-user-section').style.display = 'block';
+  const users = getUsers();
+  document.getElementById('users-table').innerHTML = users.map(u => `<tr><td><strong>${u.id}</strong></td><td><span class="badge ${u.role === 'admin' ? 'cloth' : 'ok'}">${u.role}</span></td><td><button class="btn btn-secondary btn-sm" onclick="openChangePass('${u.id}')">🔑 Badlein</button></td><td>${u.id !== 'admin' ? `<button class="btn btn-danger btn-sm" onclick="deleteUser('${u.id}')">🗑</button>` : '—'}</td></tr>`).join('');
 }
-function saveUsers(users) {
-  localStorage.setItem('sr_users', JSON.stringify(users));
-}
-
-let currentUser = null;
-let editingUserId = null;
-
-function doLogin() {
-  const id   = document.getElementById('login-id').value.trim();
-  const pass = document.getElementById('login-pass').value;
-  const errEl = document.getElementById('login-error');
-  const boxEl = document.getElementById('login-box');
-
-  const users = loadUsers();
-  const match = users.find(u => u.id === id && u.pass === pass);
-  if (match) {
-    currentUser = match;
-    errEl.classList.remove('show');
-    document.getElementById('login-screen').classList.add('hidden');
-    // Show logged-in user name in sidebar
-    const userEl = document.getElementById('logged-in-user');
-    userEl.textContent = '👤 ' + match.id + (match.role === 'admin' ? ' (Admin)' : '');
-    userEl.style.display = 'block';
-    // Show Settings only for admin
-    document.getElementById('settings-nav-btn').style.display = match.role === 'admin' ? 'flex' : 'none';
-  } else {
-    errEl.classList.add('show');
-    boxEl.classList.remove('login-shake');
-    void boxEl.offsetWidth;
-    boxEl.classList.add('login-shake');
-    document.getElementById('login-pass').value = '';
-    document.getElementById('login-pass').focus();
-  }
-}
-
-function doLogout() {
-  if (!confirm('Logout karna chahte hain?')) return;
-  currentUser = null;
-  document.getElementById('login-id').value = '';
-  document.getElementById('login-pass').value = '';
-  document.getElementById('login-error').classList.remove('show');
-  document.getElementById('logged-in-user').style.display = 'none';
-  document.getElementById('login-screen').classList.remove('hidden');
-  showPage('dashboard');
-}
-
-// Change own password
-function changeOwnPassword() {
-  const oldPass = document.getElementById('cp-old').value;
-  const newPass = document.getElementById('cp-new').value.trim();
-  const confirm = document.getElementById('cp-confirm').value;
-  if (!oldPass || !newPass || !confirm) { alert('Sab fields bharein!'); return; }
-  if (newPass !== confirm) { alert('Naya password aur confirm password match nahi kar rahe!'); return; }
-  if (newPass.length < 4) { alert('Password kam se kam 4 characters ka hona chahiye!'); return; }
-  const users = loadUsers();
-  const idx = users.findIndex(u => u.id === currentUser.id);
-  if (users[idx].pass !== oldPass) { alert('Purana password galat hai!'); return; }
-  users[idx].pass = newPass;
-  currentUser.pass = newPass;
-  saveUsers(users);
-  document.getElementById('cp-old').value = '';
-  document.getElementById('cp-new').value = '';
-  document.getElementById('cp-confirm').value = '';
-  showSettingsAlert('✅ Aapka password badal diya gaya!');
-}
-
-// Admin: render users table
-function renderUsersTable() {
-  const users = loadUsers();
-  const adminSection = document.getElementById('admin-user-section');
-  if (!currentUser || currentUser.role !== 'admin') { adminSection.style.display = 'none'; return; }
-  adminSection.style.display = 'block';
-  document.getElementById('users-table').innerHTML = users.map(u => `
-    <tr>
-      <td><strong style="color:var(--accent)">${u.id}</strong></td>
-      <td><span class="badge ${u.role === 'admin' ? 'ok' : 'shoes'}">${u.role}</span></td>
-      <td>
-        <button class="btn btn-secondary btn-sm" onclick="openChangePassModal('${u.id}')">🔑 Badlo</button>
-      </td>
-      <td>
-        ${u.id === currentUser.id
-          ? '<span style="font-size:12px;color:var(--text2)">Aap khud</span>'
-          : `<button class="btn btn-danger btn-sm" onclick="deleteUser('${u.id}')">🗑 Delete</button>`
-        }
-      </td>
-    </tr>`).join('');
-}
-
-function openChangePassModal(userId) {
-  editingUserId = userId;
-  document.getElementById('cp-modal-user').textContent = 'User: ' + userId;
-  document.getElementById('cpm-new').value = '';
-  document.getElementById('cpm-confirm').value = '';
-  openModal('change-pass-modal');
-}
-
+let changingUserId = null;
+function openChangePass(uid) { changingUserId = uid; document.getElementById('cp-modal-user').textContent = 'User: ' + uid; openModal('change-pass-modal'); }
 function saveUserPassword() {
-  const np = document.getElementById('cpm-new').value.trim();
+  const np = document.getElementById('cpm-new').value;
   const cp = document.getElementById('cpm-confirm').value;
-  if (!np || !cp) { alert('Password fields bharein!'); return; }
-  if (np !== cp) { alert('Passwords match nahi kar rahe!'); return; }
-  if (np.length < 4) { alert('Kam se kam 4 characters ka password chahiye!'); return; }
-  const users = loadUsers();
-  const idx = users.findIndex(u => u.id === editingUserId);
-  users[idx].pass = np;
-  saveUsers(users);
-  closeModal('change-pass-modal');
-  showSettingsAlert('✅ ' + editingUserId + ' ka password badal diya gaya!');
-  renderUsersTable();
+  if (!np) return alert('Naya password bharein!');
+  if (np !== cp) return alert('Passwords match nahi kar rahe!');
+  const users = getUsers();
+  const u = users.find(u => u.id === changingUserId);
+  if (u) { u.pass = np; saveUsers(users); closeModal('change-pass-modal'); alert('Password change ho gaya!'); }
 }
-
 function addNewUser() {
-  const id   = document.getElementById('nu-id').value.trim().toLowerCase();
-  const pass = document.getElementById('nu-pass').value.trim();
+  const id = document.getElementById('nu-id').value.trim();
+  const pass = document.getElementById('nu-pass').value;
   const role = document.getElementById('nu-role').value;
-  if (!id || !pass) { alert('ID aur Password dono zaroori hain!'); return; }
-  if (pass.length < 4) { alert('Password kam se kam 4 characters ka hona chahiye!'); return; }
-  const users = loadUsers();
-  if (users.find(u => u.id === id)) { alert('Yeh User ID pehle se exist karta hai!'); return; }
-  users.push({ id, pass, role });
-  saveUsers(users);
-  document.getElementById('nu-id').value = '';
-  document.getElementById('nu-pass').value = '';
-  closeModal('add-user-modal');
-  showSettingsAlert('✅ Naya user "' + id + '" add ho gaya!');
-  renderUsersTable();
+  if (!id || !pass) return alert('ID aur password bharein!');
+  const users = getUsers();
+  if (users.find(u => u.id === id)) return alert('Ye ID already exist karti hai!');
+  users.push({ id, pass, role }); saveUsers(users); closeModal('add-user-modal'); renderSettings(); alert('User add ho gaya!');
+}
+function deleteUser(id) { if (!confirm('Delete karein?')) return; const users = getUsers().filter(u => u.id !== id); saveUsers(users); renderSettings(); }
+function changeOwnPassword() {
+  const old = document.getElementById('cp-old').value;
+  const np = document.getElementById('cp-new').value;
+  const cp = document.getElementById('cp-confirm').value;
+  if (currentUser.pass !== old) return alert('Purana password galat hai!');
+  if (!np) return alert('Naya password bharein!');
+  if (np !== cp) return alert('Passwords match nahi!');
+  const users = getUsers(); const u = users.find(u => u.id === currentUser.id);
+  if (u) { u.pass = np; currentUser.pass = np; saveUsers(users); alert('Password change ho gaya! ✅'); }
 }
 
-function deleteUser(userId) {
-  if (!confirm('"' + userId + '" ko delete karna chahte hain?')) return;
-  const users = loadUsers().filter(u => u.id !== userId);
-  saveUsers(users);
-  showSettingsAlert('🗑 User "' + userId + '" delete ho gaya!');
-  renderUsersTable();
-}
-
-function showSettingsAlert(msg) {
-  const el = document.getElementById('settings-alert');
-  el.textContent = msg;
-  el.style.display = 'block';
-  el.classList.add('show');
-  setTimeout(() => { el.classList.remove('show'); el.style.display = 'none'; }, 3000);
-}
-
-// Hook into showPage to render users table when settings opens
-const _origShowPage = showPage;
-showPage = function(page) {
-  _origShowPage(page);
-  if (page === 'settings') renderUsersTable();
-};
-
-// ====== INIT ======
-load().then(() => {
-  renderDashboard();
-});
+// ====== AUTO REFRESH every 30 seconds ======
+setInterval(() => {
+  if (currentUser) loadFromSupabase();
+}, 30000);
 </script>
 </body>
 </html>
