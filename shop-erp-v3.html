@@ -365,6 +365,20 @@ select option { background: var(--surface); }
   <div id="page-settings" class="page">
     <div class="page-header"><h1>Settings ⚙️</h1><p>Password aur users manage karein</p></div>
     <div class="alert success" id="settings-alert" style="display:none"></div>
+
+    <!-- FORCE SYNC CARD -->
+    <div class="card" style="margin-bottom:20px;border:2px solid rgba(82,183,136,0.4)">
+      <div class="card-header" style="background:rgba(82,183,136,0.08)">
+        <span class="card-title" style="color:var(--green)">🔄 Is Phone ka Data Sabpe Bhejo (Force Sync)</span>
+      </div>
+      <div style="padding:20px">
+        <p style="color:var(--text2);font-size:14px;margin-bottom:16px;">⚠️ Ye button dabane se <strong style="color:var(--green)">is phone ka saara data</strong> cloud par upload ho jayega aur baaki sabhi phones par bhi yahi data aa jayega.</p>
+        <button class="btn btn-primary" style="background:var(--green);color:#0f0e17;font-size:15px;padding:12px 24px;" onclick="forceSyncThisDevice()">
+          📤 Is Phone ka Data Upload Karo — Sabko Sync Karo
+        </button>
+      </div>
+    </div>
+
     <div class="card" style="margin-bottom:20px">
       <div class="card-header"><span class="card-title">🔑 Apna Password Badlein</span></div>
       <div style="padding:20px;max-width:420px">
@@ -1013,6 +1027,23 @@ async function changeOwnPassword() {
   currentUser.pass = np;
   await saveUsers(users);
   alert('✅ Password change ho gaya! Ab sabhi phones par naya password kaam karega.');
+}
+
+// ====== FORCE SYNC ======
+async function forceSyncThisDevice() {
+  if (!confirm("⚠️ Is phone ka data sabpe upload hoga. Sure hain?")) return;
+  showSync("📤 Upload ho raha hai...", "blue", 0);
+  const json = JSON.stringify(DB);
+  try {
+    const { error } = await sb.from("erp_data").upsert({ shop_id: "sr-collections", db_json: json, updated_at: new Date().toISOString() }, { onConflict: "shop_id" });
+    if (error) throw error;
+    try { localStorage.setItem("dukan-erp", json); } catch(e) {}
+    showSync("✅ Force Sync Kaamyab! Baaki phones par refresh karo.", "green", 8000);
+    alert("✅ Kaamyab! Ab baaki sabhi phones par refresh karo.");
+  } catch(e) {
+    showSync("❌ Sync fail — internet check karo", "red");
+    alert("❌ Error: " + e.message);
+  }
 }
 
 // ====== AUTO REFRESH every 30 seconds ======
