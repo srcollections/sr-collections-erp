@@ -121,6 +121,8 @@ select option { background: var(--surface); }
 .login-btn:hover { background: #f4b87d; }
 .login-error { background: rgba(230,57,70,0.12); color: var(--red); border: 1px solid rgba(230,57,70,0.25); border-radius: 9px; padding: 10px 14px; font-size: 13px; margin-bottom: 14px; display: none; text-align: center; }
 .login-error.show { display: block; }
+.login-loading { background: rgba(76,201,240,0.1); color: var(--blue); border: 1px solid rgba(76,201,240,0.25); border-radius: 9px; padding: 10px 14px; font-size: 13px; margin-bottom: 14px; display: none; text-align: center; }
+.login-loading.show { display: block; }
 </style>
 </head>
 <body>
@@ -146,6 +148,7 @@ select option { background: var(--surface); }
       <div class="login-logo-sub">Cloth &amp; Shoes — ERP</div>
       <div class="login-divider"></div>
     </div>
+    <div class="login-loading" id="login-loading">⏳ Users load ho rahe hain...</div>
     <div class="login-error" id="login-error">❌ ID ya Password galat hai!</div>
     <div class="login-field">
       <label>User ID</label>
@@ -193,7 +196,7 @@ select option { background: var(--surface); }
   </div>
   <div class="sidebar-footer">
     <div id="logged-in-user" style="font-size:12px;color:var(--accent);font-weight:600;margin-bottom:6px;display:none"></div>
-    v3.0 — SR Collections<br>
+    v3.1 — SR Collections<br>
     <button onclick="doLogout()" style="margin-top:6px;background:rgba(230,57,70,0.12);color:var(--red);border:1px solid rgba(230,57,70,0.2);border-radius:7px;padding:5px 12px;font-size:12px;cursor:pointer;font-family:var(--font-body);width:100%;">🔒 Logout</button>
   </div>
 </nav>
@@ -541,6 +544,9 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 let DB = { products: [], purchases: [], sales: [], expenses: [], staff: [], salaries: [] };
 let currentUser = null;
 
+// ====== DEFAULT USERS (fallback only) ======
+const DEFAULT_USERS = [{ id: 'admin', pass: 'admin123', role: 'admin' }];
+
 // ====== SYNC STATUS ======
 function showSync(msg, color, duration = 3000) {
   const bar = document.getElementById('sync-bar');
@@ -550,7 +556,59 @@ function showSync(msg, color, duration = 3000) {
   if (duration > 0) window._syncT = setTimeout(() => { bar.className = ''; }, duration);
 }
 
-// ====== SUPABASE LOAD & SAVE ======
+// ====== USERS — SUPABASE MEIN SAVE HONGE (CLOUD) ======
+async function loadUsersFromCloud() {
+  try {
+    const { data, error } = await sb.from('erp_users').select('*').eq('shop_id', 'sr-collections').single();
+    if (error && error.code !== 'PGRST116') throw error;
+    if (data && data.users_json) {
+      const users = JSON.parse(data.users_json);
+      // Local bhi save karo backup ke liye
+      try { localStorage.setItem('erp-users-cloud', data.users_json); } catch(e) {}
+      return users;
+    }
+    // Pehli baar — default admin create karo cloud pe
+    await saveUsersToCloud(DEFAULT_USERS);
+    return DEFAULT_USERS;
+  } catch(e) {
+    // Offline — local backup try karo
+    try {
+      const loc = localStorage.getItem('erp-users-cloud');
+      if (loc) return JSON.parse(loc);
+    } catch(e2) {}
+    return DEFAULT_USERS;
+  }
+}
+
+async function saveUsersToCloud(users) {
+  const json = JSON.stringify(users);
+  try { localStorage.setItem('erp-users-cloud', json); } catch(e) {}
+  try {
+    await sb.from('erp_users').upsert({
+      shop_id: 'sr-collections',
+      users_json: json,
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'shop_id' });
+  } catch(e) {
+    console.warn('Users cloud save failed:', e);
+  }
+}
+
+// Cached users in memory
+let _cachedUsers = null;
+
+async function getUsers() {
+  if (_cachedUsers) return _cachedUsers;
+  _cachedUsers = await loadUsersFromCloud();
+  return _cachedUsers;
+}
+
+async function saveUsers(users) {
+  _cachedUsers = users;
+  await saveUsersToCloud(users);
+}
+
+// ====== SUPABASE LOAD & SAVE (Main Data) ======
 async function loadFromSupabase() {
   showSync('🔄 Data load ho raha hai...', 'blue', 0);
   try {
@@ -561,7 +619,6 @@ async function loadFromSupabase() {
       try { localStorage.setItem('dukan-erp', data.db_json); } catch(e) {}
       showSync('✅ Data sync ho gaya! Dono phones update hain.', 'green');
     } else {
-      // Try local
       try { const loc = localStorage.getItem('dukan-erp'); if (loc) DB = JSON.parse(loc); } catch(e) {}
       showSync('📦 Pehli baar — local data use ho raha hai', 'orange');
     }
@@ -591,17 +648,21 @@ async function saveToSupabase() {
 
 function save() { saveToSupabase(); }
 
-// ====== USERS (localStorage mein) ======
-function getUsers() {
-  try { return JSON.parse(localStorage.getItem('erp-users') || 'null') || [{ id: 'admin', pass: 'admin123', role: 'admin' }]; } catch(e) { return [{ id: 'admin', pass: 'admin123', role: 'admin' }]; }
-}
-function saveUsers(users) { localStorage.setItem('erp-users', JSON.stringify(users)); }
-
 // ====== LOGIN ======
-function doLogin() {
+async function doLogin() {
   const id = document.getElementById('login-id').value.trim();
   const pass = document.getElementById('login-pass').value;
-  const users = getUsers();
+  if (!id || !pass) return;
+
+  // Loading dikhao
+  document.getElementById('login-loading').classList.add('show');
+  document.getElementById('login-error').classList.remove('show');
+
+  // Cloud se latest users fetch karo
+  _cachedUsers = null; // Cache clear karo taaki fresh load ho
+  const users = await getUsers();
+  document.getElementById('login-loading').classList.remove('show');
+
   const user = users.find(u => u.id === id && u.pass === pass);
   if (user) {
     currentUser = user;
@@ -615,7 +676,8 @@ function doLogin() {
     setTimeout(() => document.getElementById('login-error').classList.remove('show'), 3000);
   }
 }
-function doLogout() { currentUser = null; location.reload(); }
+
+function doLogout() { currentUser = null; _cachedUsers = null; location.reload(); }
 
 // ====== NAVIGATION ======
 let currentPage = 'dashboard';
@@ -837,13 +899,11 @@ function renderProfit() {
   document.getElementById('p-expenses').textContent = rupee(expenses + salaries);
   document.getElementById('p-net').textContent = rupee(net);
   document.getElementById('p-net').style.color = net >= 0 ? 'var(--blue)' : 'var(--red)';
-  // Product-wise
   const byProd = {};
   DB.sales.forEach(s => { byProd[s.productName] = (byProd[s.productName] || 0) + s.profit; });
   const ppEl = document.getElementById('product-profit');
   const ppList = Object.entries(byProd).sort((a, b) => b[1] - a[1]);
   ppEl.innerHTML = ppList.length ? ppList.map(([name, profit]) => `<div class="profit-row"><span>${name}</span><span style="color:${profit >= 0 ? 'var(--green)' : 'var(--red)'};font-weight:600">${rupee(profit)}</span></div>`).join('') : '<div class="empty"><p>Koi data nahi</p></div>';
-  // Category-wise
   const byCat = {};
   DB.sales.forEach(s => { const prod = DB.products.find(p => p.id === s.productId); const cat = prod ? prod.cat : 'Other'; byCat[cat] = (byCat[cat] || 0) + s.profit; });
   const cpEl = document.getElementById('cat-profit');
@@ -867,12 +927,10 @@ function renderDashboard() {
   document.getElementById('d-month-profit').style.color = monthProfit >= 0 ? 'var(--blue)' : 'var(--red)';
   document.getElementById('d-month-sales').textContent = monthSales.length + ' sales this month';
   document.getElementById('d-low-stock').textContent = DB.products.filter(p => p.stock <= p.reorder).length;
-  // Date display
   const days = ['Ravivaar', 'Somvaar', 'Mangalvaar', 'Budhvaar', 'Guruvaar', 'Shukravaar', 'Shanivaar'];
   const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
   const now = new Date();
   document.getElementById('dash-date').textContent = days[now.getDay()] + ', ' + now.getDate() + ' ' + months[now.getMonth()] + ' ' + now.getFullYear();
-  // Bar chart - last 7 days
   const chart = document.getElementById('sales-chart');
   const labels = [];
   const values = [];
@@ -885,61 +943,85 @@ function renderDashboard() {
   }
   const maxVal = Math.max(...values, 1);
   chart.innerHTML = values.map((v, i) => `<div class="bar-wrap"><div class="bar-val">${v > 0 ? rupee(v) : ''}</div><div class="bar" style="height:${Math.max((v/maxVal)*100, v > 0 ? 8 : 2)}%;background:${v > 0 ? 'var(--purple)' : 'rgba(255,255,255,0.05)'}"></div><div class="bar-label">${labels[i]}</div></div>`).join('');
-  // Top products
   const byProd = {};
   DB.sales.forEach(s => { byProd[s.productName] = (byProd[s.productName] || 0) + s.qty; });
   const topEl = document.getElementById('top-products');
   const top5 = Object.entries(byProd).sort((a, b) => b[1] - a[1]).slice(0, 5);
   topEl.innerHTML = top5.length ? top5.map(([name, qty]) => `<div class="profit-row"><span>${name}</span><span style="color:var(--accent);font-weight:600">${qty} sold</span></div>`).join('') : '<div class="empty"><p>Abhi koi sale nahi</p></div>';
-  // Today activity
   const actEl = document.getElementById('today-activity');
-  const acts = [...DB.sales.filter(s => s.date === today).map(s => ({ time: s.id, text: `💰 Sale: ${s.productName} × ${s.qty} — ${rupee(s.total)}`, color: 'var(--green)' })), ...DB.purchases.filter(p => p.date === today).map(p => ({ time: p.id, text: `🛒 Purchase: ${p.productName} × ${p.qty} — ${rupee(p.total)}`, color: 'var(--accent)' })), ...DB.expenses.filter(e => e.date === today).map(e => ({ time: e.id, text: `💸 Expense: ${e.cat} — ${rupee(e.amount)}`, color: 'var(--red)' }))];
+  const acts = [...DB.sales.filter(s => s.date === today).map(s => ({ text: `💰 Sale: ${s.productName} × ${s.qty} — ${rupee(s.total)}`, color: 'var(--green)' })), ...DB.purchases.filter(p => p.date === today).map(p => ({ text: `🛒 Purchase: ${p.productName} × ${p.qty} — ${rupee(p.total)}`, color: 'var(--accent)' })), ...DB.expenses.filter(e => e.date === today).map(e => ({ text: `💸 Expense: ${e.cat} — ${rupee(e.amount)}`, color: 'var(--red)' }))];
   actEl.innerHTML = acts.length ? acts.map(a => `<div class="profit-row"><span style="color:${a.color}">${a.text}</span></div>`).join('') : '<div class="empty"><p>Aaj koi transaction nahi</p></div>';
 }
 
 // ====== SETTINGS ======
-function renderSettings() {
+async function renderSettings() {
   if (!currentUser || currentUser.role !== 'admin') { document.getElementById('admin-user-section').style.display = 'none'; return; }
   document.getElementById('admin-user-section').style.display = 'block';
-  const users = getUsers();
+  const users = await getUsers();
   document.getElementById('users-table').innerHTML = users.map(u => `<tr><td><strong>${u.id}</strong></td><td><span class="badge ${u.role === 'admin' ? 'cloth' : 'ok'}">${u.role}</span></td><td><button class="btn btn-secondary btn-sm" onclick="openChangePass('${u.id}')">🔑 Badlein</button></td><td>${u.id !== 'admin' ? `<button class="btn btn-danger btn-sm" onclick="deleteUser('${u.id}')">🗑</button>` : '—'}</td></tr>`).join('');
 }
+
 let changingUserId = null;
 function openChangePass(uid) { changingUserId = uid; document.getElementById('cp-modal-user').textContent = 'User: ' + uid; openModal('change-pass-modal'); }
-function saveUserPassword() {
+
+async function saveUserPassword() {
   const np = document.getElementById('cpm-new').value;
   const cp = document.getElementById('cpm-confirm').value;
   if (!np) return alert('Naya password bharein!');
   if (np !== cp) return alert('Passwords match nahi kar rahe!');
-  const users = getUsers();
+  const users = await getUsers();
   const u = users.find(u => u.id === changingUserId);
-  if (u) { u.pass = np; saveUsers(users); closeModal('change-pass-modal'); alert('Password change ho gaya!'); }
+  if (u) {
+    u.pass = np;
+    await saveUsers(users);
+    closeModal('change-pass-modal');
+    alert('✅ Password change ho gaya! Ab sabhi phones par naya password kaam karega.');
+  }
 }
-function addNewUser() {
+
+async function addNewUser() {
   const id = document.getElementById('nu-id').value.trim();
   const pass = document.getElementById('nu-pass').value;
   const role = document.getElementById('nu-role').value;
   if (!id || !pass) return alert('ID aur password bharein!');
-  const users = getUsers();
+  const users = await getUsers();
   if (users.find(u => u.id === id)) return alert('Ye ID already exist karti hai!');
-  users.push({ id, pass, role }); saveUsers(users); closeModal('add-user-modal'); renderSettings(); alert('User add ho gaya!');
+  users.push({ id, pass, role });
+  await saveUsers(users);
+  closeModal('add-user-modal');
+  renderSettings();
+  alert('✅ User add ho gaya! Ab sabhi phones par dikhega.');
 }
-function deleteUser(id) { if (!confirm('Delete karein?')) return; const users = getUsers().filter(u => u.id !== id); saveUsers(users); renderSettings(); }
-function changeOwnPassword() {
+
+async function deleteUser(id) {
+  if (!confirm('Delete karein?')) return;
+  const users = (await getUsers()).filter(u => u.id !== id);
+  await saveUsers(users);
+  renderSettings();
+}
+
+async function changeOwnPassword() {
   const old = document.getElementById('cp-old').value;
   const np = document.getElementById('cp-new').value;
   const cp = document.getElementById('cp-confirm').value;
-  if (currentUser.pass !== old) return alert('Purana password galat hai!');
+  const users = await getUsers();
+  const u = users.find(u => u.id === currentUser.id);
+  if (!u || u.pass !== old) return alert('Purana password galat hai!');
   if (!np) return alert('Naya password bharein!');
   if (np !== cp) return alert('Passwords match nahi!');
-  const users = getUsers(); const u = users.find(u => u.id === currentUser.id);
-  if (u) { u.pass = np; currentUser.pass = np; saveUsers(users); alert('Password change ho gaya! ✅'); }
+  u.pass = np;
+  currentUser.pass = np;
+  await saveUsers(users);
+  alert('✅ Password change ho gaya! Ab sabhi phones par naya password kaam karega.');
 }
 
 // ====== AUTO REFRESH every 30 seconds ======
 setInterval(() => {
   if (currentUser) loadFromSupabase();
 }, 30000);
+
+// ====== PAGE LOAD — Supabase mein erp_users table create ki zaroorat nahi ======
+// Bas login karo, baaki sab automatic hoga
 </script>
 </body>
 </html>
