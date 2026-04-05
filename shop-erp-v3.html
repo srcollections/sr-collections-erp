@@ -197,6 +197,7 @@ select option { background: var(--surface); }
   <div class="sidebar-footer">
     <div id="logged-in-user" style="font-size:12px;color:var(--accent);font-weight:600;margin-bottom:6px;display:none"></div>
     v3.1 — SR Collections<br>
+    <button id="staff-upload-btn" onclick="staffUpload()" style="display:none;margin-top:6px;background:rgba(82,183,136,0.15);color:#52b788;border:1px solid rgba(82,183,136,0.3);border-radius:7px;padding:5px 12px;font-size:12px;cursor:pointer;font-family:var(--font-body);width:100%;font-weight:600;">☁️ Cloud pe Upload Karo</button>
     <button onclick="doLogout()" style="margin-top:6px;background:rgba(230,57,70,0.12);color:var(--red);border:1px solid rgba(230,57,70,0.2);border-radius:7px;padding:5px 12px;font-size:12px;cursor:pointer;font-family:var(--font-body);width:100%;">🔒 Logout</button>
   </div>
 </nav>
@@ -365,21 +366,7 @@ select option { background: var(--surface); }
   <div id="page-settings" class="page">
     <div class="page-header"><h1>Settings ⚙️</h1><p>Password aur users manage karein</p></div>
     <div class="alert success" id="settings-alert" style="display:none"></div>
-
-    <!-- FORCE SYNC CARD -->
-    <div class="card" style="margin-bottom:20px;border:2px solid rgba(82,183,136,0.4)">
-      <div class="card-header" style="background:rgba(82,183,136,0.08)">
-        <span class="card-title" style="color:var(--green)">🔄 Is Phone ka Data Sabpe Bhejo (Force Sync)</span>
-      </div>
-      <div style="padding:20px">
-        <p style="color:var(--text2);font-size:14px;margin-bottom:16px;">⚠️ Ye button dabane se <strong style="color:var(--green)">is phone ka saara data</strong> cloud par upload ho jayega aur baaki sabhi phones par bhi yahi data aa jayega.</p>
-        <button class="btn btn-primary" style="background:var(--green);color:#0f0e17;font-size:15px;padding:12px 24px;" onclick="forceSyncThisDevice()">
-          📤 Is Phone ka Data Upload Karo — Sabko Sync Karo
-        </button>
-      </div>
-    </div>
-
-    <div class="card" style="margin-bottom:20px">
+    <div class="card" style="margin-bottom:20px" id="own-password-section">
       <div class="card-header"><span class="card-title">🔑 Apna Password Badlein</span></div>
       <div style="padding:20px;max-width:420px">
         <div style="display:flex;flex-direction:column;gap:14px">
@@ -643,24 +630,131 @@ async function loadFromSupabase() {
   renderCurrentPage();
 }
 
+// Auto-refresh: har 20 second mein doosre phone ka naya data check karo
+let _autoRefreshDBStr = '';
+async function autoRefresh() {
+  if (document.querySelector('.overlay.show')) return; // Modal open ho to skip
+  try {
+    const { data } = await sb.from('erp_data').select('db_json,updated_at').eq('shop_id', 'sr-collections').single();
+    if (data && data.db_json && data.db_json !== _autoRefreshDBStr) {
+      _autoRefreshDBStr = data.db_json;
+      const cloudDB = JSON.parse(data.db_json);
+      // Merge karo taaki kuch miss na ho
+      DB = mergeDB(DB, cloudDB);
+      try { localStorage.setItem('dukan-erp', JSON.stringify(DB)); } catch(e) {}
+      renderCurrentPage();
+      showSync('🔄 Naya data aaya doosre phone se!', 'blue');
+    }
+  } catch(e) {}
+}
+setInterval(autoRefresh, 20000);
+
+// Smart merge: dono phones ke records combine karo, koi bhi delete na ho
+function mergeDB(local, cloud) {
+  const merged = {};
+  for (const key of ['purchases', 'sales', 'expenses', 'salaries']) {
+    const localArr = local[key] || [];
+    const cloudArr = cloud[key] || [];
+    const byId = {};
+    // Pehle cloud ke records daalo
+    for (const r of cloudArr) byId[r.id] = r;
+    // Phir local ke (local me stock updated hota hai, isliye local priority)
+    for (const r of localArr) byId[r.id] = r;
+    merged[key] = Object.values(byId).sort((a,b) => (a.date||'') < (b.date||'') ? -1 : 1);
+  }
+  // Staff: dono merge karo
+  const staffById = {};
+  for (const s of (cloud.staff||[])) staffById[s.id] = s;
+  for (const s of (local.staff||[])) staffById[s.id] = s;
+  merged.staff = Object.values(staffById);
+  // Products: local priority (stock changes local me hote hain)
+  const prodById = {};
+  for (const p of (cloud.products||[])) prodById[p.id] = p;
+  for (const p of (local.products||[])) prodById[p.id] = p;
+  merged.products = Object.values(prodById);
+  return merged;
+}
+
 async function saveToSupabase() {
-  const json = JSON.stringify(DB);
-  try { localStorage.setItem('dukan-erp', json); } catch(e) {}
+  try { localStorage.setItem('dukan-erp', JSON.stringify(DB)); } catch(e) {}
   showSync('💾 Save ho raha hai...', 'blue', 0);
   try {
+    // Step 1: Pehle cloud ka latest data fetch karo
+    const { data: cloudRow } = await sb.from('erp_data').select('db_json').eq('shop_id', 'sr-collections').single();
+    let finalDB = DB;
+    if (cloudRow && cloudRow.db_json) {
+      const cloudDB = JSON.parse(cloudRow.db_json);
+      // Step 2: Smart merge karo — dono phones ka data bachao
+      finalDB = mergeDB(DB, cloudDB);
+      DB = finalDB; // local bhi update karo
+      try { localStorage.setItem('dukan-erp', JSON.stringify(DB)); } catch(e) {}
+    }
+    // Step 3: Merged data cloud pe save karo
     const { error } = await sb.from('erp_data').upsert({
       shop_id: 'sr-collections',
-      db_json: json,
+      db_json: JSON.stringify(finalDB),
       updated_at: new Date().toISOString()
     }, { onConflict: 'shop_id' });
     if (error) throw error;
-    showSync('✅ Supabase pe save ho gaya! Dono phones sync hain 🎉', 'green');
+    showSync('✅ Dono phones sync ho gaye! 🎉', 'green');
+    renderCurrentPage(); // UI refresh karo merged data ke saath
   } catch(e) {
     showSync('⚠️ Internet nahi — sirf local save hua', 'orange');
   }
 }
 
-function save() { saveToSupabase(); }
+function staffUpload() {
+  if (!currentUser || currentUser.role !== 'staff') return;
+  saveToSupabase();
+}
+
+function save() {
+  // Sirf staff cloud pe upload kar sakta hai
+  if (currentUser && currentUser.role === 'staff') {
+    saveToSupabase();
+  } else {
+    // Admin sirf dekh sakta hai — cloud upload nahi
+    try { localStorage.setItem('dukan-erp', JSON.stringify(DB)); } catch(e) {}
+    showSync('ℹ️ Admin sirf dekh sakta hai — upload nahi', 'orange');
+  }
+}
+
+// ====== ROLE-BASED UI ======
+function applyRoleUI(role) {
+  const isStaff = role === 'staff';
+  const isAdmin = role === 'admin';
+
+  // Add/Delete buttons — sirf staff ko dikhenge
+  const writeButtons = [
+    'button[onclick*="openModal(\'product-modal\')"]',
+    'button[onclick*="openModal(\'purchase-modal\')"]',
+    'button[onclick*="openModal(\'sale-modal\')"]',
+    'button[onclick*="openModal(\'expense-modal\')"]',
+    'button[onclick*="openModal(\'staff-modal\')"]',
+    'button[onclick*="openModal(\'salary-modal\')"]',
+  ];
+  writeButtons.forEach(sel => {
+    document.querySelectorAll(sel).forEach(btn => {
+      btn.style.display = isStaff ? '' : 'none';
+    });
+  });
+
+  // Password change section — sirf admin ko dikhega, staff ko nahi
+  const pwSection = document.getElementById('own-password-section');
+  if (pwSection) pwSection.style.display = isAdmin ? 'block' : 'none';
+
+  // Admin user management — sirf admin ko
+  const adminSection = document.getElementById('admin-user-section');
+  if (adminSection) adminSection.style.display = isAdmin ? 'block' : 'none';
+
+  // Settings nav — dono ko dikhega (admin password ke liye, staff ke liye bhi)
+  const settingsNav = document.getElementById('settings-nav-btn');
+  if (settingsNav) settingsNav.style.display = isAdmin ? 'flex' : 'none';
+
+  // Staff upload button sidebar mein — sirf staff ko dikhega
+  const uploadBtn = document.getElementById('staff-upload-btn');
+  if (uploadBtn) uploadBtn.style.display = isStaff ? 'block' : 'none';
+}
 
 // ====== LOGIN ======
 async function doLogin() {
@@ -684,6 +778,9 @@ async function doLogin() {
     document.getElementById('logged-in-user').textContent = '👤 ' + user.id + ' (' + user.role + ')';
     document.getElementById('logged-in-user').style.display = 'block';
     if (user.role === 'admin') document.getElementById('settings-nav-btn').style.display = 'flex';
+    else document.getElementById('settings-nav-btn').style.display = 'none';
+    // Role ke hisaab se buttons show/hide karo
+    applyRoleUI(user.role);
     loadFromSupabase();
   } else {
     document.getElementById('login-error').classList.add('show');
@@ -760,8 +857,9 @@ function renderProducts(filter = '') {
   const list = DB.products.filter(p => p.name.toLowerCase().includes(filter.toLowerCase()) || p.code.toLowerCase().includes(filter.toLowerCase()));
   document.getElementById('product-count').textContent = `Products (${list.length})`;
   const tbody = document.getElementById('products-table');
+  const canWrite = currentUser && currentUser.role === 'staff';
   if (!list.length) { tbody.innerHTML = `<tr><td colspan="8"><div class="empty"><div class="big">👗</div><p>Koi product nahi</p></div></td></tr>`; return; }
-  tbody.innerHTML = list.map(p => `<tr><td><code style="color:var(--accent);font-size:12px">${p.code}</code></td><td><strong>${p.name}</strong></td><td><span class="badge ${p.cat === 'Cloth' ? 'cloth' : 'shoes'}">${p.cat}</span></td><td>${p.size || '—'}</td><td style="color:var(--green)">${rupee(p.salePrice)}</td><td style="color:var(--text2)">${rupee(p.purchasePrice)}</td><td><span class="badge ${p.stock <= p.reorder ? 'low' : 'ok'}">${p.stock} ${p.unit}</span></td><td><button class="btn btn-danger btn-sm" onclick="deleteProduct('${p.id}')">🗑</button></td></tr>`).join('');
+  tbody.innerHTML = list.map(p => `<tr><td><code style="color:var(--accent);font-size:12px">${p.code}</code></td><td><strong>${p.name}</strong></td><td><span class="badge ${p.cat === 'Cloth' ? 'cloth' : 'shoes'}">${p.cat}</span></td><td>${p.size || '—'}</td><td style="color:var(--green)">${rupee(p.salePrice)}</td><td style="color:var(--text2)">${rupee(p.purchasePrice)}</td><td><span class="badge ${p.stock <= p.reorder ? 'low' : 'ok'}">${p.stock} ${p.unit}</span></td><td>${canWrite ? `<button class="btn btn-danger btn-sm" onclick="deleteProduct('${p.id}')">🗑</button>` : '—'}</td></tr>`).join('');
 }
 function deleteProduct(id) { if (!confirm('Delete karein?')) return; DB.products = DB.products.filter(p => p.id !== id); save(); renderProducts(); }
 function filterProducts(v) { renderProducts(v); }
@@ -969,8 +1067,18 @@ function renderDashboard() {
 
 // ====== SETTINGS ======
 async function renderSettings() {
-  if (!currentUser || currentUser.role !== 'admin') { document.getElementById('admin-user-section').style.display = 'none'; return; }
-  document.getElementById('admin-user-section').style.display = 'block';
+  const isAdmin = currentUser && currentUser.role === 'admin';
+  const isStaff = currentUser && currentUser.role === 'staff';
+
+  // Password section — sirf admin ko
+  const pwSection = document.getElementById('own-password-section');
+  if (pwSection) pwSection.style.display = isAdmin ? 'block' : 'none';
+
+  // Admin user management section
+  const adminSection = document.getElementById('admin-user-section');
+  if (!adminSection) return;
+  if (!isAdmin) { adminSection.style.display = 'none'; return; }
+  adminSection.style.display = 'block';
   const users = await getUsers();
   document.getElementById('users-table').innerHTML = users.map(u => `<tr><td><strong>${u.id}</strong></td><td><span class="badge ${u.role === 'admin' ? 'cloth' : 'ok'}">${u.role}</span></td><td><button class="btn btn-secondary btn-sm" onclick="openChangePass('${u.id}')">🔑 Badlein</button></td><td>${u.id !== 'admin' ? `<button class="btn btn-danger btn-sm" onclick="deleteUser('${u.id}')">🗑</button>` : '—'}</td></tr>`).join('');
 }
@@ -1027,23 +1135,6 @@ async function changeOwnPassword() {
   currentUser.pass = np;
   await saveUsers(users);
   alert('✅ Password change ho gaya! Ab sabhi phones par naya password kaam karega.');
-}
-
-// ====== FORCE SYNC ======
-async function forceSyncThisDevice() {
-  if (!confirm("⚠️ Is phone ka data sabpe upload hoga. Sure hain?")) return;
-  showSync("📤 Upload ho raha hai...", "blue", 0);
-  const json = JSON.stringify(DB);
-  try {
-    const { error } = await sb.from("erp_data").upsert({ shop_id: "sr-collections", db_json: json, updated_at: new Date().toISOString() }, { onConflict: "shop_id" });
-    if (error) throw error;
-    try { localStorage.setItem("dukan-erp", json); } catch(e) {}
-    showSync("✅ Force Sync Kaamyab! Baaki phones par refresh karo.", "green", 8000);
-    alert("✅ Kaamyab! Ab baaki sabhi phones par refresh karo.");
-  } catch(e) {
-    showSync("❌ Sync fail — internet check karo", "red");
-    alert("❌ Error: " + e.message);
-  }
 }
 
 // ====== AUTO REFRESH every 30 seconds ======
