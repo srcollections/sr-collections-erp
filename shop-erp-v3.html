@@ -97,6 +97,23 @@ select option { background: var(--surface); }
 .alert { padding: 12px 16px; border-radius: 10px; font-size: 13px; margin-bottom: 16px; display: none; }
 .alert.success { background: rgba(82,183,136,0.15); color: var(--green); border: 1px solid rgba(82,183,136,0.3); }
 .alert.show { display: block; }
+/* Product Search Autocomplete */
+.product-search-wrap { position: relative; }
+.product-dropdown { position: absolute; top: 100%; left: 0; right: 0; background: var(--surface2); border: 1px solid rgba(244,162,97,0.3); border-radius: 10px; z-index: 2000; max-height: 220px; overflow-y: auto; display: none; margin-top: 4px; box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
+.product-dropdown.open { display: block; }
+.prod-option { padding: 10px 14px; cursor: pointer; font-size: 13px; border-bottom: 1px solid var(--border); transition: background 0.15s; display: flex; align-items: center; gap: 8px; }
+.prod-option:last-child { border-bottom: none; }
+.prod-option:hover { background: rgba(244,162,97,0.10); }
+.prod-option .pcode { color: var(--accent); font-size: 11px; font-weight: 700; background: rgba(244,162,97,0.12); padding: 2px 7px; border-radius: 5px; flex-shrink:0; }
+.prod-option .pname { flex:1; font-weight: 500; }
+.prod-option .pstock { font-size: 11px; color: var(--text2); flex-shrink:0; }
+.prod-option .pstock.low { color: var(--red); }
+.pu-stock-info { margin-top: 6px; padding: 8px 12px; background: rgba(76,201,240,0.08); border: 1px solid rgba(76,201,240,0.2); border-radius: 8px; font-size: 12px; display: flex; gap: 16px; align-items: center; }
+/* Purchase items list */
+.pu-item-row { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-bottom: 1px solid var(--border); font-size: 13px; }
+.pu-item-row:last-child { border-bottom: none; }
+.pu-item-name { flex:1; }
+.pu-item-remove { cursor: pointer; color: var(--red); font-size: 16px; padding: 0 4px; }
 /* Sync Status Bar */
 #sync-bar { position: fixed; bottom: 0; left: 220px; right: 0; padding: 8px 20px; font-size: 13px; font-weight: 600; text-align: center; z-index: 999; display: none; transition: all 0.3s; }
 #sync-bar.show { display: block; }
@@ -105,6 +122,12 @@ select option { background: var(--surface); }
 #sync-bar.orange { background: rgba(244,162,97,0.15); color: var(--accent); border-top: 1px solid rgba(244,162,97,0.3); }
 #sync-bar.red { background: rgba(230,57,70,0.15); color: var(--red); border-top: 1px solid rgba(230,57,70,0.3); }
 @media (max-width: 900px) { .stats-grid { grid-template-columns: 1fr 1fr; } .charts-row { grid-template-columns: 1fr; } }
+/* ── Role-based Access ── */
+body.admin-mode .staff-only { display: none !important; }
+body.admin-mode .page-header .btn { display: none !important; }
+.role-badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; letter-spacing: 0.5px; }
+.role-badge.admin { background: rgba(230,57,70,0.15); color: var(--red); border: 1px solid rgba(230,57,70,0.3); }
+.role-badge.staff { background: rgba(82,183,136,0.15); color: var(--green); border: 1px solid rgba(82,183,136,0.3); }
 /* LOGIN */
 #login-screen { position: fixed; inset: 0; z-index: 9999; background: var(--bg); display: flex; align-items: center; justify-content: center; }
 #login-screen.hidden { display: none; }
@@ -195,9 +218,9 @@ select option { background: var(--surface); }
     <button class="nav-item" id="settings-nav-btn" onclick="showPage('settings')" style="display:none"><span class="icon">⚙️</span> Settings</button>
   </div>
   <div class="sidebar-footer">
-    <div id="logged-in-user" style="font-size:12px;color:var(--accent);font-weight:600;margin-bottom:6px;display:none"></div>
+    <div id="logged-in-user" style="font-size:12px;color:var(--accent);font-weight:600;margin-bottom:4px;display:none"></div>
+    <div id="role-badge-wrap" style="margin-bottom:8px;display:none"><span id="role-badge" class="role-badge"></span></div>
     v3.1 — SR Collections<br>
-    <button id="staff-upload-btn" onclick="staffUpload()" style="display:none;margin-top:6px;background:rgba(82,183,136,0.15);color:#52b788;border:1px solid rgba(82,183,136,0.3);border-radius:7px;padding:5px 12px;font-size:12px;cursor:pointer;font-family:var(--font-body);width:100%;font-weight:600;">☁️ Cloud pe Upload Karo</button>
     <button onclick="doLogout()" style="margin-top:6px;background:rgba(230,57,70,0.12);color:var(--red);border:1px solid rgba(230,57,70,0.2);border-radius:7px;padding:5px 12px;font-size:12px;cursor:pointer;font-family:var(--font-body);width:100%;">🔒 Logout</button>
   </div>
 </nav>
@@ -236,7 +259,7 @@ select option { background: var(--surface); }
   <div id="page-products" class="page">
     <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between;">
       <div><h1>Products 👗</h1><p>Cloth aur shoes ka catalog</p></div>
-      <button class="btn btn-primary" onclick="openModal('product-modal')">+ Naya Product</button>
+      <button class="btn btn-primary staff-only" onclick="openModal('product-modal')">+ Naya Product</button>
     </div>
     <div class="alert success" id="product-alert">Product save ho gaya ✓</div>
     <div class="card">
@@ -272,7 +295,7 @@ select option { background: var(--surface); }
   <div id="page-purchases" class="page">
     <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between;">
       <div><h1>Purchase 🛒</h1><p>Supplier se maal khareedna</p></div>
-      <button class="btn btn-primary" onclick="openModal('purchase-modal')">+ Naya Purchase</button>
+      <button class="btn btn-primary staff-only" onclick="openModal('purchase-modal')">+ Naya Purchase</button>
     </div>
     <div class="alert success" id="purchase-alert">Purchase save ho gaya ✓</div>
     <div class="card">
@@ -288,7 +311,7 @@ select option { background: var(--surface); }
   <div id="page-sales" class="page">
     <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between;">
       <div><h1>Sales 💰</h1><p>Customer ko bechna</p></div>
-      <button class="btn btn-primary" onclick="openModal('sale-modal')">+ Naya Sale</button>
+      <button class="btn btn-primary staff-only" onclick="openModal('sale-modal')">+ Naya Sale</button>
     </div>
     <div class="alert success" id="sale-alert">Sale save ho gaya ✓</div>
     <div class="card">
@@ -304,7 +327,7 @@ select option { background: var(--surface); }
   <div id="page-expenses" class="page">
     <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between;">
       <div><h1>Expenses 💸</h1><p>Dukan ka kharcha</p></div>
-      <button class="btn btn-primary" onclick="openModal('expense-modal')">+ Naya Kharcha</button>
+      <button class="btn btn-primary staff-only" onclick="openModal('expense-modal')">+ Naya Kharcha</button>
     </div>
     <div class="alert success" id="expense-alert">Expense save ho gaya ✓</div>
     <div class="stats-grid" style="grid-template-columns:repeat(3,1fr)">
@@ -326,8 +349,8 @@ select option { background: var(--surface); }
     <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between;">
       <div><h1>Staff & Salary 👨‍💼</h1><p>Employees aur payments</p></div>
       <div style="display:flex;gap:8px;">
-        <button class="btn btn-secondary" onclick="openModal('salary-modal')">💳 Salary Do</button>
-        <button class="btn btn-primary" onclick="openModal('staff-modal')">+ Naya Staff</button>
+        <button class="btn btn-secondary staff-only" onclick="openModal('salary-modal')">💳 Salary Do</button>
+        <button class="btn btn-primary staff-only" onclick="openModal('staff-modal')">+ Naya Staff</button>
       </div>
     </div>
     <div class="alert success" id="staff-alert">Saved ✓</div>
@@ -356,6 +379,14 @@ select option { background: var(--surface); }
       <div class="stat-card red"><div class="stat-label">Total Expenses</div><div class="stat-value red" id="p-expenses">₹0</div></div>
       <div class="stat-card blue"><div class="stat-label">Net Profit</div><div class="stat-value blue" id="p-net">₹0</div></div>
     </div>
+    <!-- Monthly Profit Breakdown -->
+    <div class="card" style="margin-bottom:24px">
+      <div class="card-header"><span class="card-title">📅 Month-wise Profit Breakdown</span></div>
+      <table>
+        <thead><tr><th>Month</th><th>Revenue</th><th>Purchase Cost</th><th>Expenses</th><th>Salaries</th><th>Net Profit</th></tr></thead>
+        <tbody id="monthly-profit-table"><tr><td colspan="6"><div class="empty"><p>Koi data nahi</p></div></td></tr></tbody>
+      </table>
+    </div>
     <div class="charts-row">
       <div class="card"><div class="card-header"><span class="card-title">Product-wise Profit</span></div><div style="padding:8px 20px 16px;" id="product-profit"></div></div>
       <div class="card"><div class="card-header"><span class="card-title">Category-wise Profit</span></div><div style="padding:8px 20px 16px;" id="cat-profit"></div></div>
@@ -366,7 +397,7 @@ select option { background: var(--surface); }
   <div id="page-settings" class="page">
     <div class="page-header"><h1>Settings ⚙️</h1><p>Password aur users manage karein</p></div>
     <div class="alert success" id="settings-alert" style="display:none"></div>
-    <div class="card" style="margin-bottom:20px" id="own-password-section">
+    <div class="card" style="margin-bottom:20px">
       <div class="card-header"><span class="card-title">🔑 Apna Password Badlein</span></div>
       <div style="padding:20px;max-width:420px">
         <div style="display:flex;flex-direction:column;gap:14px">
@@ -445,21 +476,68 @@ select option { background: var(--surface); }
 </div>
 
 <div class="overlay" id="purchase-modal">
-  <div class="modal">
-    <h2>🛒 Naya Purchase</h2>
+  <div class="modal" style="width:520px;max-width:96vw">
+    <h2>🛒 Purchase Entry</h2>
+
+    <!-- Added Items List -->
+    <div id="pu-items-box" style="display:none;margin-bottom:16px;border:1px solid var(--border);border-radius:10px;overflow:hidden;">
+      <div style="padding:7px 12px;background:rgba(244,162,97,0.08);font-size:11px;color:var(--accent);text-transform:uppercase;letter-spacing:1px;font-weight:700;">✅ Added Items</div>
+      <div id="pu-items-body"></div>
+      <div style="padding:8px 12px;background:rgba(255,255,255,0.02);font-size:13px;display:flex;justify-content:space-between;">
+        <span style="color:var(--text2)">Subtotal</span>
+        <strong id="pu-items-subtotal" style="color:var(--accent)">₹0</strong>
+      </div>
+    </div>
+
     <div class="form-grid">
       <div class="form-group"><label>Date *</label><input id="pu-date" type="date"></div>
-      <div class="form-group"><label>Supplier Naam *</label><input id="pu-supplier" placeholder="Supplier ka naam"></div>
-      <div class="form-group"><label>Product *</label><select id="pu-product"></select></div>
-      <div class="form-group"><label>Quantity *</label><input id="pu-qty" type="number" placeholder="0" min="1"></div>
-      <div class="form-group"><label>Unit Cost (₹) *</label><input id="pu-cost" type="number" placeholder="0"></div>
-      <div class="form-group"><label>Payment Status</label><select id="pu-payment"><option>Paid</option><option>Unpaid</option><option>Partial</option></select></div>
-      <div class="form-group full"><label>Note</label><input id="pu-note" placeholder="Optional"></div>
+      <div class="form-group"><label>Supplier Naam</label><input id="pu-supplier" placeholder="e.g. Sharma Ji, Rajesh Traders"></div>
+
+      <!-- Smart Product Search -->
+      <div class="form-group full">
+        <label>Product — naam ya code type karein</label>
+        <div class="product-search-wrap">
+          <input id="pu-product-search" placeholder="🔍 Search karein ya naya naam likhein..." autocomplete="off"
+            oninput="searchPuProduct(this.value)" onfocus="searchPuProduct(this.value)"
+            onkeydown="puSearchKeydown(event)" style="padding-right:36px">
+          <span style="position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:16px;pointer-events:none;opacity:0.4">▾</span>
+          <input type="hidden" id="pu-product-id">
+          <div class="product-dropdown" id="pu-product-dropdown"></div>
+        </div>
+        <!-- Existing product info -->
+        <div class="pu-stock-info" id="pu-stock-info" style="display:none">
+          <span>📦 Stock: <strong id="pu-stock-now" style="color:var(--blue)">0</strong></span>
+          <span>🏷️ Last Rate: <strong id="pu-last-rate" style="color:var(--accent)">—</strong></span>
+          <span id="pu-stock-badge"></span>
+        </div>
+      </div>
+
+      <!-- NEW PRODUCT FIELDS — shown only when naya product -->
+      <div id="new-prod-section" style="display:none;grid-column:1/-1;background:rgba(82,183,136,0.06);border:1px solid rgba(82,183,136,0.25);border-radius:10px;padding:14px;">
+        <div style="font-size:12px;color:var(--green);font-weight:700;margin-bottom:10px;letter-spacing:0.5px">🆕 NAYA PRODUCT DETAILS BHAREIN</div>
+        <div class="form-grid" style="gap:10px">
+          <div class="form-group"><label>Product Code *</label><input id="np-code" placeholder="e.g. C010, S005"></div>
+          <div class="form-group"><label>Category *</label><select id="np-cat"><option value="Cloth">Cloth</option><option value="Shoes">Shoes</option></select></div>
+          <div class="form-group"><label>Sale Price (₹) *</label><input id="np-sprice" type="number" placeholder="Bechne ka rate"></div>
+          <div class="form-group"><label>Unit</label><select id="np-unit"><option value="piece">piece</option><option value="pair">pair</option><option value="meter">meter</option><option value="set">set</option></select></div>
+          <div class="form-group"><label>Reorder Level</label><input id="np-reorder" type="number" placeholder="5" value="5"></div>
+        </div>
+      </div>
+
+      <div class="form-group"><label>Quantity *</label><input id="pu-qty" type="number" placeholder="0" min="1" oninput="calcPuTotal()" onkeydown="if(event.key==='Enter')document.getElementById('pu-cost').focus()"></div>
+      <div class="form-group"><label>Purchase Rate (₹) *</label><input id="pu-cost" type="number" placeholder="0" oninput="calcPuTotal()" onkeydown="if(event.key==='Enter')addPuItem()"></div>
+      <div class="form-group"><label>Payment</label><select id="pu-payment"><option>Paid</option><option>Unpaid</option><option>Partial</option></select></div>
+      <div class="form-group"><label>Note</label><input id="pu-note" placeholder="Optional"></div>
     </div>
-    <div style="padding:12px 0;font-size:14px;color:var(--text2)">Total: <strong id="pu-total" style="color:var(--accent)">₹0</strong></div>
-    <div class="modal-actions">
+
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0 4px">
+      <div style="font-size:14px;color:var(--text2)">Item Total: <strong id="pu-total" style="color:var(--accent)">₹0</strong></div>
+      <button class="btn btn-secondary btn-sm" onclick="addPuItem()" id="pu-add-btn" style="display:none">➕ Aur Item Add Karein</button>
+    </div>
+
+    <div class="modal-actions" style="margin-top:8px">
       <button class="btn btn-secondary" onclick="closeModal('purchase-modal')">Cancel</button>
-      <button class="btn btn-primary" onclick="savePurchase()">Save Purchase</button>
+      <button class="btn btn-primary" onclick="savePurchase()">✅ Save Purchase</button>
     </div>
   </div>
 </div>
@@ -630,131 +708,29 @@ async function loadFromSupabase() {
   renderCurrentPage();
 }
 
-// Auto-refresh: har 20 second mein doosre phone ka naya data check karo
-let _autoRefreshDBStr = '';
-async function autoRefresh() {
-  if (document.querySelector('.overlay.show')) return; // Modal open ho to skip
-  try {
-    const { data } = await sb.from('erp_data').select('db_json,updated_at').eq('shop_id', 'sr-collections').single();
-    if (data && data.db_json && data.db_json !== _autoRefreshDBStr) {
-      _autoRefreshDBStr = data.db_json;
-      const cloudDB = JSON.parse(data.db_json);
-      // Merge karo taaki kuch miss na ho
-      DB = mergeDB(DB, cloudDB);
-      try { localStorage.setItem('dukan-erp', JSON.stringify(DB)); } catch(e) {}
-      renderCurrentPage();
-      showSync('🔄 Naya data aaya doosre phone se!', 'blue');
-    }
-  } catch(e) {}
-}
-setInterval(autoRefresh, 20000);
-
-// Smart merge: dono phones ke records combine karo, koi bhi delete na ho
-function mergeDB(local, cloud) {
-  const merged = {};
-  for (const key of ['purchases', 'sales', 'expenses', 'salaries']) {
-    const localArr = local[key] || [];
-    const cloudArr = cloud[key] || [];
-    const byId = {};
-    // Pehle cloud ke records daalo
-    for (const r of cloudArr) byId[r.id] = r;
-    // Phir local ke (local me stock updated hota hai, isliye local priority)
-    for (const r of localArr) byId[r.id] = r;
-    merged[key] = Object.values(byId).sort((a,b) => (a.date||'') < (b.date||'') ? -1 : 1);
-  }
-  // Staff: dono merge karo
-  const staffById = {};
-  for (const s of (cloud.staff||[])) staffById[s.id] = s;
-  for (const s of (local.staff||[])) staffById[s.id] = s;
-  merged.staff = Object.values(staffById);
-  // Products: local priority (stock changes local me hote hain)
-  const prodById = {};
-  for (const p of (cloud.products||[])) prodById[p.id] = p;
-  for (const p of (local.products||[])) prodById[p.id] = p;
-  merged.products = Object.values(prodById);
-  return merged;
-}
-
 async function saveToSupabase() {
-  try { localStorage.setItem('dukan-erp', JSON.stringify(DB)); } catch(e) {}
+  // ⛔ Admin sirf dekh sakta hai — data save/sync nahi kar sakta
+  if (currentUser && currentUser.role === 'admin') {
+    showSync('⛔ Admin account se data save nahi hoga. Staff se login karein.', 'red', 3000);
+    return;
+  }
+  const json = JSON.stringify(DB);
+  try { localStorage.setItem('dukan-erp', json); } catch(e) {}
   showSync('💾 Save ho raha hai...', 'blue', 0);
   try {
-    // Step 1: Pehle cloud ka latest data fetch karo
-    const { data: cloudRow } = await sb.from('erp_data').select('db_json').eq('shop_id', 'sr-collections').single();
-    let finalDB = DB;
-    if (cloudRow && cloudRow.db_json) {
-      const cloudDB = JSON.parse(cloudRow.db_json);
-      // Step 2: Smart merge karo — dono phones ka data bachao
-      finalDB = mergeDB(DB, cloudDB);
-      DB = finalDB; // local bhi update karo
-      try { localStorage.setItem('dukan-erp', JSON.stringify(DB)); } catch(e) {}
-    }
-    // Step 3: Merged data cloud pe save karo
     const { error } = await sb.from('erp_data').upsert({
       shop_id: 'sr-collections',
-      db_json: JSON.stringify(finalDB),
+      db_json: json,
       updated_at: new Date().toISOString()
     }, { onConflict: 'shop_id' });
     if (error) throw error;
-    showSync('✅ Dono phones sync ho gaye! 🎉', 'green');
-    renderCurrentPage(); // UI refresh karo merged data ke saath
+    showSync('✅ Supabase pe save ho gaya! Dono phones sync hain 🎉', 'green');
   } catch(e) {
     showSync('⚠️ Internet nahi — sirf local save hua', 'orange');
   }
 }
 
-function staffUpload() {
-  if (!currentUser || currentUser.role !== 'staff') return;
-  saveToSupabase();
-}
-
-function save() {
-  // Sirf staff cloud pe upload kar sakta hai
-  if (currentUser && currentUser.role === 'staff') {
-    saveToSupabase();
-  } else {
-    // Admin sirf dekh sakta hai — cloud upload nahi
-    try { localStorage.setItem('dukan-erp', JSON.stringify(DB)); } catch(e) {}
-    showSync('ℹ️ Admin sirf dekh sakta hai — upload nahi', 'orange');
-  }
-}
-
-// ====== ROLE-BASED UI ======
-function applyRoleUI(role) {
-  const isStaff = role === 'staff';
-  const isAdmin = role === 'admin';
-
-  // Add/Delete buttons — sirf staff ko dikhenge
-  const writeButtons = [
-    'button[onclick*="openModal(\'product-modal\')"]',
-    'button[onclick*="openModal(\'purchase-modal\')"]',
-    'button[onclick*="openModal(\'sale-modal\')"]',
-    'button[onclick*="openModal(\'expense-modal\')"]',
-    'button[onclick*="openModal(\'staff-modal\')"]',
-    'button[onclick*="openModal(\'salary-modal\')"]',
-  ];
-  writeButtons.forEach(sel => {
-    document.querySelectorAll(sel).forEach(btn => {
-      btn.style.display = isStaff ? '' : 'none';
-    });
-  });
-
-  // Password change section — sirf admin ko dikhega, staff ko nahi
-  const pwSection = document.getElementById('own-password-section');
-  if (pwSection) pwSection.style.display = isAdmin ? 'block' : 'none';
-
-  // Admin user management — sirf admin ko
-  const adminSection = document.getElementById('admin-user-section');
-  if (adminSection) adminSection.style.display = isAdmin ? 'block' : 'none';
-
-  // Settings nav — dono ko dikhega (admin password ke liye, staff ke liye bhi)
-  const settingsNav = document.getElementById('settings-nav-btn');
-  if (settingsNav) settingsNav.style.display = isAdmin ? 'flex' : 'none';
-
-  // Staff upload button sidebar mein — sirf staff ko dikhega
-  const uploadBtn = document.getElementById('staff-upload-btn');
-  if (uploadBtn) uploadBtn.style.display = isStaff ? 'block' : 'none';
-}
+function save() { saveToSupabase(); }
 
 // ====== LOGIN ======
 async function doLogin() {
@@ -775,12 +751,23 @@ async function doLogin() {
   if (user) {
     currentUser = user;
     document.getElementById('login-screen').classList.add('hidden');
-    document.getElementById('logged-in-user').textContent = '👤 ' + user.id + ' (' + user.role + ')';
+    document.getElementById('logged-in-user').textContent = '👤 ' + user.id;
     document.getElementById('logged-in-user').style.display = 'block';
-    if (user.role === 'admin') document.getElementById('settings-nav-btn').style.display = 'flex';
-    else document.getElementById('settings-nav-btn').style.display = 'none';
-    // Role ke hisaab se buttons show/hide karo
-    applyRoleUI(user.role);
+    // Role badge
+    const badge = document.getElementById('role-badge');
+    const badgeWrap = document.getElementById('role-badge-wrap');
+    if (user.role === 'admin') {
+      badge.textContent = '🔴 Admin (View Only)';
+      badge.className = 'role-badge admin';
+      document.body.classList.add('admin-mode');
+      document.getElementById('settings-nav-btn').style.display = 'flex';
+    } else {
+      badge.textContent = '🟢 Staff (Full Access)';
+      badge.className = 'role-badge staff';
+      document.body.classList.remove('admin-mode');
+      document.getElementById('settings-nav-btn').style.display = 'none';
+    }
+    badgeWrap.style.display = 'block';
     loadFromSupabase();
   } else {
     document.getElementById('login-error').classList.add('show');
@@ -815,7 +802,25 @@ function renderCurrentPage() {
 // ====== MODAL ======
 function openModal(id) {
   const today = new Date().toISOString().split('T')[0];
-  if (id === 'purchase-modal') { document.getElementById('pu-date').value = today; populateProductSelect('pu-product'); }
+  if (id === 'purchase-modal') {
+    document.getElementById('pu-date').value = today;
+    document.getElementById('pu-product-search').value = '';
+    document.getElementById('pu-product-id').value = '';
+    document.getElementById('pu-product-dropdown').classList.remove('open');
+    document.getElementById('pu-stock-info').style.display = 'none';
+    document.getElementById('new-prod-section').style.display = 'none';
+    document.getElementById('np-code').value = '';
+    document.getElementById('np-sprice').value = '';
+    document.getElementById('np-reorder').value = '5';
+    document.getElementById('pu-qty').value = '';
+    document.getElementById('pu-cost').value = '';
+    document.getElementById('pu-note').value = '';
+    document.getElementById('pu-total').textContent = '₹0';
+    document.getElementById('pu-add-btn').style.display = 'none';
+    _puItems = [];
+    renderPuItemsList();
+    setTimeout(() => document.getElementById('pu-product-search').focus(), 100);
+  }
   if (id === 'sale-modal') { document.getElementById('sa-date').value = today; populateProductSelect('sa-product'); }
   if (id === 'expense-modal') document.getElementById('ex-date').value = today;
   if (id === 'staff-modal') document.getElementById('st-join').value = today;
@@ -835,6 +840,7 @@ function populateProductSelect(selId) {
     : DB.products.map(p => `<option value="${p.id}">${p.code} — ${p.name} (Stock: ${p.stock})</option>`).join('');
 }
 function showAlert(id) { const el = document.getElementById(id); el.classList.add('show'); setTimeout(() => el.classList.remove('show'), 2500); }
+function showToast(msg, color = 'green') { showSync(msg, color, 2500); }
 
 const rupee = n => '₹' + Number(n).toLocaleString('en-IN');
 const uid = () => Date.now() + Math.random().toString(36).slice(2, 6);
@@ -843,6 +849,7 @@ const thisMonth = () => new Date().toISOString().slice(0, 7);
 
 // ====== PRODUCTS ======
 function saveProduct() {
+  if (currentUser && currentUser.role === 'admin') return alert('⛔ Admin sirf dekh sakta hai.');
   const code = document.getElementById('p-code').value.trim();
   const name = document.getElementById('p-name').value.trim();
   const sprice = parseFloat(document.getElementById('p-sprice').value);
@@ -857,11 +864,10 @@ function renderProducts(filter = '') {
   const list = DB.products.filter(p => p.name.toLowerCase().includes(filter.toLowerCase()) || p.code.toLowerCase().includes(filter.toLowerCase()));
   document.getElementById('product-count').textContent = `Products (${list.length})`;
   const tbody = document.getElementById('products-table');
-  const canWrite = currentUser && currentUser.role === 'staff';
   if (!list.length) { tbody.innerHTML = `<tr><td colspan="8"><div class="empty"><div class="big">👗</div><p>Koi product nahi</p></div></td></tr>`; return; }
-  tbody.innerHTML = list.map(p => `<tr><td><code style="color:var(--accent);font-size:12px">${p.code}</code></td><td><strong>${p.name}</strong></td><td><span class="badge ${p.cat === 'Cloth' ? 'cloth' : 'shoes'}">${p.cat}</span></td><td>${p.size || '—'}</td><td style="color:var(--green)">${rupee(p.salePrice)}</td><td style="color:var(--text2)">${rupee(p.purchasePrice)}</td><td><span class="badge ${p.stock <= p.reorder ? 'low' : 'ok'}">${p.stock} ${p.unit}</span></td><td>${canWrite ? `<button class="btn btn-danger btn-sm" onclick="deleteProduct('${p.id}')">🗑</button>` : '—'}</td></tr>`).join('');
+  tbody.innerHTML = list.map(p => `<tr><td><code style="color:var(--accent);font-size:12px">${p.code}</code></td><td><strong>${p.name}</strong></td><td><span class="badge ${p.cat === 'Cloth' ? 'cloth' : 'shoes'}">${p.cat}</span></td><td>${p.size || '—'}</td><td style="color:var(--green)">${rupee(p.salePrice)}</td><td style="color:var(--text2)">${rupee(p.purchasePrice)}</td><td><span class="badge ${p.stock <= p.reorder ? 'low' : 'ok'}">${p.stock} ${p.unit}</span></td><td>${currentUser && currentUser.role !== 'admin' ? `<button class="btn btn-danger btn-sm" onclick="deleteProduct('${p.id}')">🗑</button>` : '—'}</td></tr>`).join('');
 }
-function deleteProduct(id) { if (!confirm('Delete karein?')) return; DB.products = DB.products.filter(p => p.id !== id); save(); renderProducts(); }
+function deleteProduct(id) { if (currentUser && currentUser.role === 'admin') return; if (!confirm('Delete karein?')) return; DB.products = DB.products.filter(p => p.id !== id); save(); renderProducts(); }
 function filterProducts(v) { renderProducts(v); }
 
 // ====== STOCK ======
@@ -876,27 +882,223 @@ function renderStock() {
 }
 
 // ====== PURCHASES ======
-function savePurchase() {
-  const pid = document.getElementById('pu-product').value;
-  const prod = DB.products.find(p => p.id === pid);
-  if (!prod) return alert('Product select karein!');
+let _puItems = [];          // { productId, isNew, code, name, cat, unit, salePrice, reorder, qty, cost }
+
+function renderPuItemsList() {
+  const box = document.getElementById('pu-items-box');
+  const body = document.getElementById('pu-items-body');
+  if (!_puItems.length) { box.style.display = 'none'; return; }
+  box.style.display = 'block';
+  body.innerHTML = _puItems.map((item, i) => `
+    <div class="pu-item-row">
+      <span style="color:${item.isNew ? 'var(--green)' : 'var(--accent)'};font-size:11px;font-weight:700;background:${item.isNew ? 'rgba(82,183,136,0.15)' : 'rgba(244,162,97,0.12)'};padding:2px 7px;border-radius:5px;flex-shrink:0">${item.isNew ? '🆕' : item.code}</span>
+      <span class="pu-item-name">${item.name}</span>
+      <span style="color:var(--text2);font-size:12px;flex-shrink:0">×${item.qty} @ ₹${item.cost}</span>
+      <strong style="color:var(--accent);flex-shrink:0">₹${(item.qty*item.cost).toLocaleString('en-IN')}</strong>
+      <span class="pu-item-remove" onclick="removePuItem(${i})">✕</span>
+    </div>`).join('');
+  const subtotal = _puItems.reduce((a, it) => a + it.qty * it.cost, 0);
+  document.getElementById('pu-items-subtotal').textContent = '₹' + subtotal.toLocaleString('en-IN');
+}
+
+function removePuItem(i) { _puItems.splice(i, 1); renderPuItemsList(); }
+
+// ── Product Search ──
+let _isNewProduct = false;  // kya user naya product add kar raha hai
+
+function searchPuProduct(query) {
+  const dropdown = document.getElementById('pu-product-dropdown');
+  const q = query.trim().toLowerCase();
+  const results = q.length === 0
+    ? DB.products.slice(0, 12)
+    : DB.products.filter(p => p.name.toLowerCase().includes(q) || p.code.toLowerCase().includes(q));
+
+  let html = '';
+  if (!DB.products.length && q.length === 0) {
+    html = `<div class="prod-option" style="color:var(--text2)">Abhi koi product nahi — neeche naya add karein</div>`;
+  } else if (results.length) {
+    html = results.map(p => {
+      const low = p.stock <= p.reorder;
+      return `<div class="prod-option" onclick="selectPuProduct('${p.id}')">
+        <span class="pcode">${p.code}</span>
+        <span class="pname">${p.name}</span>
+        <span class="pstock ${low ? 'low' : ''}">Stock: ${p.stock}${low ? ' ⚠' : ''}</span>
+      </div>`;
+    }).join('');
+  } else {
+    html = `<div class="prod-option" style="color:var(--text2);font-style:italic">Koi match nahi mila</div>`;
+  }
+
+  // Hamesha "Naya Product" option dikhao jab kuch type ho
+  if (q.length > 0) {
+    html += `<div class="prod-option" style="color:var(--green);border-top:1px solid var(--border);font-weight:600" onclick="selectNewProduct('${query.trim().replace(/'/g,"\\'")}')">
+      ➕ &nbsp;"${query.trim()}" — Naya Product Add Karein
+    </div>`;
+  }
+  dropdown.innerHTML = html;
+  dropdown.classList.add('open');
+}
+
+function selectPuProduct(id) {
+  _isNewProduct = false;
+  const prod = DB.products.find(p => p.id === id);
+  if (!prod) return;
+  document.getElementById('pu-product-search').value = prod.code + ' — ' + prod.name;
+  document.getElementById('pu-product-id').value = id;
+  document.getElementById('pu-product-dropdown').classList.remove('open');
+  document.getElementById('new-prod-section').style.display = 'none';
+  // Auto-fill rate from product
+  document.getElementById('pu-cost').value = prod.purchasePrice;
+  // Show stock info
+  document.getElementById('pu-stock-info').style.display = 'flex';
+  document.getElementById('pu-stock-now').textContent = prod.stock + ' ' + (prod.unit || 'piece');
+  document.getElementById('pu-last-rate').textContent = '₹' + prod.purchasePrice.toLocaleString('en-IN');
+  const badge = document.getElementById('pu-stock-badge');
+  badge.innerHTML = prod.stock <= prod.reorder
+    ? '<span class="badge low">⚠ Low Stock</span>'
+    : '<span class="badge ok">✓ Stock OK</span>';
+  calcPuTotal();
+  document.getElementById('pu-add-btn').style.display = 'inline-flex';
+  document.getElementById('pu-qty').focus();
+}
+
+function selectNewProduct(name) {
+  _isNewProduct = true;
+  document.getElementById('pu-product-search').value = name;
+  document.getElementById('pu-product-id').value = '__new__';
+  document.getElementById('pu-product-dropdown').classList.remove('open');
+  document.getElementById('pu-stock-info').style.display = 'none';
+  // Show new product fields
+  const sec = document.getElementById('new-prod-section');
+  sec.style.display = 'block';
+  // Auto-suggest code
+  const maxCode = DB.products.reduce((max, p) => {
+    const n = parseInt(p.code.replace(/\D/g,'')) || 0;
+    return n > max ? n : max;
+  }, 0);
+  document.getElementById('np-code').value = 'P' + String(maxCode + 1).padStart(3, '0');
+  document.getElementById('pu-add-btn').style.display = 'inline-flex';
+  document.getElementById('np-sprice').focus();
+}
+
+function puSearchKeydown(e) {
+  const dropdown = document.getElementById('pu-product-dropdown');
+  const options = dropdown.querySelectorAll('.prod-option[onclick]');
+  if (e.key === 'Escape') { dropdown.classList.remove('open'); return; }
+  if (e.key === 'Enter' && options.length === 1) { options[0].click(); return; }
+}
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('.product-search-wrap')) {
+    const dd = document.getElementById('pu-product-dropdown');
+    if (dd) dd.classList.remove('open');
+  }
+});
+
+function calcPuTotal() {
+  const q = parseFloat(document.getElementById('pu-qty').value) || 0;
+  const c = parseFloat(document.getElementById('pu-cost').value) || 0;
+  document.getElementById('pu-total').textContent = '₹' + (q * c).toLocaleString('en-IN');
+}
+
+function addPuItem() {
   const qty = parseInt(document.getElementById('pu-qty').value);
   const cost = parseFloat(document.getElementById('pu-cost').value);
-  if (!qty || !cost) return alert('Quantity aur cost bharein!');
-  DB.purchases.push({ id: uid(), date: document.getElementById('pu-date').value, supplier: document.getElementById('pu-supplier').value || 'Unknown', productId: prod.id, productName: prod.name, qty, cost, total: qty * cost, payment: document.getElementById('pu-payment').value, note: document.getElementById('pu-note').value });
-  prod.stock += qty;
-  save(); closeModal('purchase-modal'); showAlert('purchase-alert'); renderPurchases();
+  if (!qty || qty < 1) return alert('Quantity bharein!');
+  if (!cost || cost < 1) return alert('Purchase rate bharein!');
+
+  if (_isNewProduct) {
+    // ── Naya Product ──
+    const name = document.getElementById('pu-product-search').value.trim();
+    const code = document.getElementById('np-code').value.trim();
+    const cat  = document.getElementById('np-cat').value;
+    const sprice = parseFloat(document.getElementById('np-sprice').value);
+    const unit = document.getElementById('np-unit').value;
+    const reorder = parseInt(document.getElementById('np-reorder').value) || 5;
+    if (!code) return alert('Product code bharein!');
+    if (!sprice || sprice < 1) return alert('Sale price bharein!');
+    if (!name) return alert('Product naam type karein!');
+    _puItems.push({ isNew: true, productId: null, code, name, cat, unit, salePrice: sprice, reorder, qty, cost });
+
+  } else {
+    // ── Existing Product ──
+    const pid = document.getElementById('pu-product-id').value;
+    const prod = DB.products.find(p => p.id === pid);
+    if (!prod) return alert('Pehle product select karein ya naya naam likhein!');
+    // Same product already in list? → merge
+    const existing = _puItems.find(it => it.productId === prod.id);
+    if (existing) {
+      existing.qty += qty;
+      existing.cost = cost;
+      showToast(`✅ ${prod.name}: qty ${existing.qty - qty}+${qty} = ${existing.qty}, rate ₹${cost}`);
+    } else {
+      _puItems.push({ isNew: false, productId: prod.id, code: prod.code, name: prod.name, qty, cost });
+    }
+  }
+
+  renderPuItemsList();
+  // Reset for next item
+  document.getElementById('pu-product-search').value = '';
+  document.getElementById('pu-product-id').value = '';
+  document.getElementById('pu-stock-info').style.display = 'none';
+  document.getElementById('new-prod-section').style.display = 'none';
+  document.getElementById('np-code').value = '';
+  document.getElementById('np-sprice').value = '';
+  document.getElementById('pu-qty').value = '';
+  document.getElementById('pu-cost').value = '';
+  document.getElementById('pu-total').textContent = '₹0';
+  document.getElementById('pu-add-btn').style.display = 'none';
+  _isNewProduct = false;
+  document.getElementById('pu-product-search').focus();
 }
-document.getElementById('pu-qty').addEventListener('input', () => {
-  const q = parseFloat(document.getElementById('pu-qty').value) || 0;
-  const c = parseFloat(document.getElementById('pu-cost').value) || 0;
-  document.getElementById('pu-total').textContent = rupee(q * c);
-});
-document.getElementById('pu-cost').addEventListener('input', () => {
-  const q = parseFloat(document.getElementById('pu-qty').value) || 0;
-  const c = parseFloat(document.getElementById('pu-cost').value) || 0;
-  document.getElementById('pu-total').textContent = rupee(q * c);
-});
+
+function savePurchase() {
+  if (currentUser && currentUser.role === 'admin') return alert('⛔ Admin sirf dekh sakta hai. Purchase add karne ke liye staff account se login karein.');
+  const date     = document.getElementById('pu-date').value;
+  const supplier = document.getElementById('pu-supplier').value.trim() || 'Unknown';
+  const payment  = document.getElementById('pu-payment').value;
+  const note     = document.getElementById('pu-note').value;
+
+  // Agar current fields bharein hain to auto-add karo
+  const curQty  = parseInt(document.getElementById('pu-qty').value);
+  const curCost = parseFloat(document.getElementById('pu-cost').value);
+  if (curQty > 0 && curCost > 0) addPuItem();
+
+  if (!_puItems.length) return alert('Koi item nahi! Product, qty aur rate bharein.');
+
+  _puItems.forEach(item => {
+    let prod;
+    if (item.isNew) {
+      // ── Naya product create karo ──
+      prod = {
+        id: uid(), code: item.code, name: item.name,
+        cat: item.cat, size: '', unit: item.unit,
+        salePrice: item.salePrice, purchasePrice: item.cost,
+        stock: item.qty, reorder: item.reorder
+      };
+      DB.products.push(prod);
+    } else {
+      prod = DB.products.find(p => p.id === item.productId);
+      if (!prod) return;
+      prod.stock += item.qty;
+      prod.purchasePrice = item.cost; // latest rate update
+    }
+    DB.purchases.push({
+      id: uid(), date, supplier,
+      productId: prod.id, productName: item.name,
+      qty: item.qty, cost: item.cost, total: item.qty * item.cost,
+      payment, note
+    });
+  });
+
+  _puItems = [];
+  save();
+  closeModal('purchase-modal');
+  showAlert('purchase-alert');
+  renderPurchases();
+  renderProducts();
+  renderStock();
+}
 function renderPurchases() {
   const list = [...DB.purchases].reverse();
   document.getElementById('purchase-count').textContent = `Purchases (${list.length})`;
@@ -923,6 +1125,7 @@ function calcSaleTotal() {
   document.getElementById('sa-profit-preview').textContent = rupee(profit);
 }
 function saveSale() {
+  if (currentUser && currentUser.role === 'admin') return alert('⛔ Admin sirf dekh sakta hai. Sale add karne ke liye staff account se login karein.');
   const pid = document.getElementById('sa-product').value;
   const prod = DB.products.find(p => p.id === pid);
   if (!prod) return alert('Product select karein!');
@@ -947,6 +1150,7 @@ function renderSales() {
 
 // ====== EXPENSES ======
 function saveExpense() {
+  if (currentUser && currentUser.role === 'admin') return alert('⛔ Admin sirf dekh sakta hai.');
   const amount = parseFloat(document.getElementById('ex-amount').value);
   if (!amount) return alert('Amount bharein!');
   DB.expenses.push({ id: uid(), date: document.getElementById('ex-date').value, cat: document.getElementById('ex-cat').value, desc: document.getElementById('ex-desc').value, amount });
@@ -1011,11 +1215,49 @@ function renderProfit() {
   document.getElementById('p-expenses').textContent = rupee(expenses + salaries);
   document.getElementById('p-net').textContent = rupee(net);
   document.getElementById('p-net').style.color = net >= 0 ? 'var(--blue)' : 'var(--red)';
+
+  // ── Monthly Breakdown ──
+  const monthNames = { '01':'January','02':'February','03':'March','04':'April','05':'May','06':'June','07':'July','08':'August','09':'September','10':'October','11':'November','12':'December' };
+  const allMonths = new Set([
+    ...DB.sales.map(s => s.date.slice(0,7)),
+    ...DB.purchases.map(p => p.date.slice(0,7)),
+    ...DB.expenses.map(e => e.date.slice(0,7)),
+    ...DB.salaries.map(s => s.date.slice(0,7))
+  ]);
+  const monthList = [...allMonths].sort().reverse();
+  const mTbody = document.getElementById('monthly-profit-table');
+  if (!monthList.length) {
+    mTbody.innerHTML = `<tr><td colspan="6"><div class="empty"><p>Koi data nahi</p></div></td></tr>`;
+  } else {
+    const currentMonth = thisMonth();
+    mTbody.innerHTML = monthList.map(m => {
+      const mRev  = DB.sales.filter(s => s.date.startsWith(m)).reduce((a,s) => a+s.total, 0);
+      const mPur  = DB.purchases.filter(p => p.date.startsWith(m)).reduce((a,p) => a+p.total, 0);
+      const mExp  = DB.expenses.filter(e => e.date.startsWith(m)).reduce((a,e) => a+e.amount, 0);
+      const mSal  = DB.salaries.filter(s => s.date.startsWith(m)).reduce((a,s) => a+s.amount, 0);
+      const mNet  = mRev - mPur - mExp - mSal;
+      const [yr, mo] = m.split('-');
+      const label = monthNames[mo] + ' ' + yr;
+      const isCur = m === currentMonth;
+      return `<tr style="${isCur ? 'background:rgba(244,162,97,0.06);' : ''}">
+        <td><strong style="${isCur ? 'color:var(--accent)' : ''}">${label}${isCur ? ' 🔵' : ''}</strong></td>
+        <td style="color:var(--green)">${rupee(mRev)}</td>
+        <td style="color:var(--accent)">${rupee(mPur)}</td>
+        <td style="color:var(--red)">${rupee(mExp + mSal)}</td>
+        <td style="color:var(--text2)">${rupee(mSal)}</td>
+        <td><strong style="color:${mNet >= 0 ? 'var(--blue)' : 'var(--red)'}">${rupee(mNet)}</strong></td>
+      </tr>`;
+    }).join('');
+  }
+
+  // Product-wise profit
   const byProd = {};
   DB.sales.forEach(s => { byProd[s.productName] = (byProd[s.productName] || 0) + s.profit; });
   const ppEl = document.getElementById('product-profit');
   const ppList = Object.entries(byProd).sort((a, b) => b[1] - a[1]);
   ppEl.innerHTML = ppList.length ? ppList.map(([name, profit]) => `<div class="profit-row"><span>${name}</span><span style="color:${profit >= 0 ? 'var(--green)' : 'var(--red)'};font-weight:600">${rupee(profit)}</span></div>`).join('') : '<div class="empty"><p>Koi data nahi</p></div>';
+
+  // Category-wise profit
   const byCat = {};
   DB.sales.forEach(s => { const prod = DB.products.find(p => p.id === s.productId); const cat = prod ? prod.cat : 'Other'; byCat[cat] = (byCat[cat] || 0) + s.profit; });
   const cpEl = document.getElementById('cat-profit');
@@ -1067,18 +1309,12 @@ function renderDashboard() {
 
 // ====== SETTINGS ======
 async function renderSettings() {
-  const isAdmin = currentUser && currentUser.role === 'admin';
-  const isStaff = currentUser && currentUser.role === 'staff';
-
-  // Password section — sirf admin ko
-  const pwSection = document.getElementById('own-password-section');
-  if (pwSection) pwSection.style.display = isAdmin ? 'block' : 'none';
-
-  // Admin user management section
-  const adminSection = document.getElementById('admin-user-section');
-  if (!adminSection) return;
-  if (!isAdmin) { adminSection.style.display = 'none'; return; }
-  adminSection.style.display = 'block';
+  // Settings sirf admin ke liye
+  if (!currentUser || currentUser.role !== 'admin') {
+    document.getElementById('page-settings').innerHTML = '<div class="page-header"><h1>⛔ Access Denied</h1><p>Yeh page sirf admin ke liye hai.</p></div>';
+    return;
+  }
+  document.getElementById('admin-user-section').style.display = 'block';
   const users = await getUsers();
   document.getElementById('users-table').innerHTML = users.map(u => `<tr><td><strong>${u.id}</strong></td><td><span class="badge ${u.role === 'admin' ? 'cloth' : 'ok'}">${u.role}</span></td><td><button class="btn btn-secondary btn-sm" onclick="openChangePass('${u.id}')">🔑 Badlein</button></td><td>${u.id !== 'admin' ? `<button class="btn btn-danger btn-sm" onclick="deleteUser('${u.id}')">🗑</button>` : '—'}</td></tr>`).join('');
 }
