@@ -122,9 +122,24 @@ select option { background: var(--surface); }
 #sync-bar.orange { background: rgba(244,162,97,0.15); color: var(--accent); border-top: 1px solid rgba(244,162,97,0.3); }
 #sync-bar.red { background: rgba(230,57,70,0.15); color: var(--red); border-top: 1px solid rgba(230,57,70,0.3); }
 @media (max-width: 900px) { .stats-grid { grid-template-columns: 1fr 1fr; } .charts-row { grid-template-columns: 1fr; } }
-/* ── Role-based Access ── */
+/* ── Filter Bar ── */
+.filter-bar { display:flex; flex-wrap:wrap; gap:10px; align-items:center; padding:14px 16px; background:rgba(255,255,255,0.02); border-bottom:1px solid var(--border); }
+.filter-bar input, .filter-bar select { background:var(--bg); border:1px solid var(--border); color:var(--text); padding:7px 12px; border-radius:8px; font-size:13px; font-family:var(--font-body); }
+.filter-bar input:focus, .filter-bar select:focus { outline:none; border-color:var(--accent); }
+.filter-bar input[type="date"] { width:140px; }
+.filter-bar .filter-search { flex:1; min-width:140px; }
+.quick-btns { display:flex; gap:6px; flex-wrap:wrap; }
+.qbtn { padding:5px 12px; border-radius:7px; border:1px solid var(--border); background:transparent; color:var(--text2); font-size:12px; font-weight:600; cursor:pointer; transition:all 0.15s; font-family:var(--font-body); }
+.qbtn:hover, .qbtn.active { background:rgba(244,162,97,0.15); color:var(--accent); border-color:var(--accent); }
+.filter-summary { padding:10px 16px; font-size:13px; color:var(--text2); display:flex; gap:20px; flex-wrap:wrap; border-bottom:1px solid var(--border); background:rgba(244,162,97,0.03); }
+.filter-summary strong { color:var(--accent); }
+/* Admin mode: staff-only buttons completely hidden */
 body.admin-mode .staff-only { display: none !important; }
-body.admin-mode .page-header .btn { display: none !important; }
+/* Admin ke liye action columns bhi hide */
+body.admin-mode .action-col { display: none !important; }
+/* Admin banner */
+.admin-banner { display: none; background: rgba(230,57,70,0.10); border: 1px solid rgba(230,57,70,0.25); border-radius: 10px; padding: 10px 16px; font-size: 13px; color: var(--red); margin-bottom: 18px; font-weight: 600; }
+body.admin-mode .admin-banner { display: block; }
 .role-badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; letter-spacing: 0.5px; }
 .role-badge.admin { background: rgba(230,57,70,0.15); color: var(--red); border: 1px solid rgba(230,57,70,0.3); }
 .role-badge.staff { background: rgba(82,183,136,0.15); color: var(--green); border: 1px solid rgba(82,183,136,0.3); }
@@ -215,7 +230,7 @@ body.admin-mode .page-header .btn { display: none !important; }
     <button class="nav-item" onclick="showPage('expenses')"><span class="icon">💸</span> Expenses</button>
     <button class="nav-item" onclick="showPage('staff')"><span class="icon">👨‍💼</span> Staff & Salary</button>
     <button class="nav-item" onclick="showPage('profit')"><span class="icon">📈</span> Profit Report</button>
-    <button class="nav-item" id="settings-nav-btn" onclick="showPage('settings')" style="display:none"><span class="icon">⚙️</span> Settings</button>
+    <button class="nav-item" id="settings-nav-btn" onclick="showPage('settings')"><span class="icon">⚙️</span> Settings</button>
   </div>
   <div class="sidebar-footer">
     <div id="logged-in-user" style="font-size:12px;color:var(--accent);font-weight:600;margin-bottom:4px;display:none"></div>
@@ -261,14 +276,22 @@ body.admin-mode .page-header .btn { display: none !important; }
       <div><h1>Products 👗</h1><p>Cloth aur shoes ka catalog</p></div>
       <button class="btn btn-primary staff-only" onclick="openModal('product-modal')">+ Naya Product</button>
     </div>
+    <div class="admin-banner">🔴 Admin Mode — Sirf View. Add/Delete staff se karein.</div>
     <div class="alert success" id="product-alert">Product save ho gaya ✓</div>
     <div class="card">
-      <div class="card-header">
+      <div class="card-header" style="flex-wrap:wrap;gap:10px;">
         <span class="card-title" id="product-count">Products (0)</span>
-        <input type="text" placeholder="🔍 Search..." style="width:200px;padding:7px 12px;font-size:13px;" oninput="filterProducts(this.value)">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <div style="display:flex;gap:6px;">
+            <button class="cat-filter-btn active" onclick="setCatFilter('all',this)" style="padding:5px 14px;border-radius:20px;border:1.5px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.08);color:var(--text);font-size:12px;font-weight:700;cursor:pointer;transition:all 0.2s;font-family:var(--font-body);">🛍️ Sab</button>
+            <button class="cat-filter-btn" onclick="setCatFilter('Cloth',this)" style="padding:5px 14px;border-radius:20px;border:1.5px solid rgba(192,132,252,0.3);background:rgba(123,94,167,0.1);color:#c084fc;font-size:12px;font-weight:700;cursor:pointer;transition:all 0.2s;font-family:var(--font-body);">👗 Cloth</button>
+            <button class="cat-filter-btn" onclick="setCatFilter('Shoes',this)" style="padding:5px 14px;border-radius:20px;border:1.5px solid rgba(76,201,240,0.3);background:rgba(76,201,240,0.08);color:var(--blue);font-size:12px;font-weight:700;cursor:pointer;transition:all 0.2s;font-family:var(--font-body);">👟 Footwear</button>
+          </div>
+          <input type="text" id="product-search-input" placeholder="🔍 Search..." style="width:180px;padding:7px 12px;font-size:13px;" oninput="filterProducts(this.value)">
+        </div>
       </div>
       <table>
-        <thead><tr><th>Code</th><th>Naam</th><th>Category</th><th>Size/Type</th><th>Sale Price</th><th>Purchase Price</th><th>Stock</th><th>Action</th></tr></thead>
+        <thead><tr><th>Code</th><th>Naam</th><th>Category</th><th>Size/Type</th><th>Sale Price</th><th>Purchase Price</th><th>Stock</th><th class="action-col">Action</th></tr></thead>
         <tbody id="products-table"><tr><td colspan="8"><div class="empty"><div class="big">👗</div><p>Koi product nahi. Upar se add karein.</p></div></td></tr></tbody>
       </table>
     </div>
@@ -283,7 +306,14 @@ body.admin-mode .page-header .btn { display: none !important; }
       <div class="stat-card orange"><div class="stat-label">Stock Value</div><div class="stat-value orange" id="s-val">₹0</div></div>
     </div>
     <div class="card">
-      <div class="card-header"><span class="card-title">Stock Status</span></div>
+      <div class="card-header" style="flex-wrap:wrap;gap:10px;">
+        <span class="card-title">Stock Status</span>
+        <div style="display:flex;gap:6px;">
+          <button class="st-cat-btn active" onclick="setStockCatFilter('all',this)" style="padding:5px 14px;border-radius:20px;border:1.5px solid rgba(255,255,255,0.15);background:rgba(244,162,97,0.2);color:var(--accent);font-size:12px;font-weight:700;cursor:pointer;transition:all 0.2s;font-family:var(--font-body);">🛍️ Sab</button>
+          <button class="st-cat-btn" onclick="setStockCatFilter('Cloth',this)" style="padding:5px 14px;border-radius:20px;border:1.5px solid rgba(192,132,252,0.3);background:rgba(123,94,167,0.1);color:#c084fc;font-size:12px;font-weight:700;cursor:pointer;transition:all 0.2s;font-family:var(--font-body);">👗 Cloth</button>
+          <button class="st-cat-btn" onclick="setStockCatFilter('Shoes',this)" style="padding:5px 14px;border-radius:20px;border:1.5px solid rgba(76,201,240,0.3);background:rgba(76,201,240,0.08);color:var(--blue);font-size:12px;font-weight:700;cursor:pointer;transition:all 0.2s;font-family:var(--font-body);">👟 Footwear</button>
+        </div>
+      </div>
       <table>
         <thead><tr><th>Code</th><th>Product</th><th>Category</th><th>Qty</th><th>Reorder Level</th><th>Status</th><th>Value</th></tr></thead>
         <tbody id="stock-table"><tr><td colspan="7"><div class="empty"><p>Pehle products add karein</p></div></td></tr></tbody>
@@ -297,9 +327,34 @@ body.admin-mode .page-header .btn { display: none !important; }
       <div><h1>Purchase 🛒</h1><p>Supplier se maal khareedna</p></div>
       <button class="btn btn-primary staff-only" onclick="openModal('purchase-modal')">+ Naya Purchase</button>
     </div>
+    <div class="admin-banner">🔴 Admin Mode — Sirf View. Purchase add karne ke liye staff se login karein.</div>
     <div class="alert success" id="purchase-alert">Purchase save ho gaya ✓</div>
     <div class="card">
       <div class="card-header"><span class="card-title" id="purchase-count">Purchases (0)</span></div>
+      <!-- Filter Bar -->
+      <div class="filter-bar">
+        <div class="quick-btns">
+          <button class="qbtn active" onclick="setPuFilter('all',this)">Sab</button>
+          <button class="qbtn" onclick="setPuFilter('today',this)">Aaj</button>
+          <button class="qbtn" onclick="setPuFilter('week',this)">Is Hafte</button>
+          <button class="qbtn" onclick="setPuFilter('month',this)">Is Mahine</button>
+        </div>
+        <div style="display:flex;gap:6px;">
+          <button class="pu-cat-btn active" onclick="setPuCatFilter('all',this)" style="padding:5px 14px;border-radius:20px;border:1.5px solid rgba(255,255,255,0.15);background:rgba(244,162,97,0.2);color:var(--accent);font-size:12px;font-weight:700;cursor:pointer;transition:all 0.2s;font-family:var(--font-body);">🛍️ Sab</button>
+          <button class="pu-cat-btn" onclick="setPuCatFilter('Cloth',this)" style="padding:5px 14px;border-radius:20px;border:1.5px solid rgba(192,132,252,0.3);background:rgba(123,94,167,0.1);color:#c084fc;font-size:12px;font-weight:700;cursor:pointer;transition:all 0.2s;font-family:var(--font-body);">👗 Cloth</button>
+          <button class="pu-cat-btn" onclick="setPuCatFilter('Shoes',this)" style="padding:5px 14px;border-radius:20px;border:1.5px solid rgba(76,201,240,0.3);background:rgba(76,201,240,0.08);color:var(--blue);font-size:12px;font-weight:700;cursor:pointer;transition:all 0.2s;font-family:var(--font-body);">👟 Footwear</button>
+        </div>
+        <input type="date" id="pu-f-from" onchange="renderPurchases()" title="From date">
+        <input type="date" id="pu-f-to" onchange="renderPurchases()" title="To date">
+        <input class="filter-search" id="pu-f-search" placeholder="🔍 Product / Supplier..." oninput="renderPurchases()">
+        <select id="pu-f-payment" onchange="renderPurchases()" style="width:120px">
+          <option value="">Sab Payment</option>
+          <option>Paid</option>
+          <option>Unpaid</option>
+          <option>Partial</option>
+        </select>
+      </div>
+      <div class="filter-summary" id="pu-filter-summary"></div>
       <table>
         <thead><tr><th>Date</th><th>Supplier</th><th>Items</th><th>Total</th><th>Payment</th></tr></thead>
         <tbody id="purchases-table"><tr><td colspan="5"><div class="empty"><div class="big">🛒</div><p>Koi purchase nahi</p></div></td></tr></tbody>
@@ -313,9 +368,34 @@ body.admin-mode .page-header .btn { display: none !important; }
       <div><h1>Sales 💰</h1><p>Customer ko bechna</p></div>
       <button class="btn btn-primary staff-only" onclick="openModal('sale-modal')">+ Naya Sale</button>
     </div>
+    <div class="admin-banner">🔴 Admin Mode — Sirf View. Sale add karne ke liye staff se login karein.</div>
     <div class="alert success" id="sale-alert">Sale save ho gaya ✓</div>
     <div class="card">
       <div class="card-header"><span class="card-title" id="sale-count">Sales (0)</span></div>
+      <!-- Filter Bar -->
+      <div class="filter-bar">
+        <div class="quick-btns">
+          <button class="qbtn active" onclick="setSaFilter('all',this)">Sab</button>
+          <button class="qbtn" onclick="setSaFilter('today',this)">Aaj</button>
+          <button class="qbtn" onclick="setSaFilter('week',this)">Is Hafte</button>
+          <button class="qbtn" onclick="setSaFilter('month',this)">Is Mahine</button>
+        </div>
+        <div style="display:flex;gap:6px;">
+          <button class="sa-cat-btn active" onclick="setSaCatFilter('all',this)" style="padding:5px 14px;border-radius:20px;border:1.5px solid rgba(255,255,255,0.15);background:rgba(244,162,97,0.2);color:var(--accent);font-size:12px;font-weight:700;cursor:pointer;transition:all 0.2s;font-family:var(--font-body);">🛍️ Sab</button>
+          <button class="sa-cat-btn" onclick="setSaCatFilter('Cloth',this)" style="padding:5px 14px;border-radius:20px;border:1.5px solid rgba(192,132,252,0.3);background:rgba(123,94,167,0.1);color:#c084fc;font-size:12px;font-weight:700;cursor:pointer;transition:all 0.2s;font-family:var(--font-body);">👗 Cloth</button>
+          <button class="sa-cat-btn" onclick="setSaCatFilter('Shoes',this)" style="padding:5px 14px;border-radius:20px;border:1.5px solid rgba(76,201,240,0.3);background:rgba(76,201,240,0.08);color:var(--blue);font-size:12px;font-weight:700;cursor:pointer;transition:all 0.2s;font-family:var(--font-body);">👟 Footwear</button>
+        </div>
+        <input type="date" id="sa-f-from" onchange="renderSales()" title="From date">
+        <input type="date" id="sa-f-to" onchange="renderSales()" title="To date">
+        <input class="filter-search" id="sa-f-search" placeholder="🔍 Product / Customer..." oninput="renderSales()">
+        <select id="sa-f-payment" onchange="renderSales()" style="width:120px">
+          <option value="">Sab Payment</option>
+          <option>Paid</option>
+          <option>Unpaid</option>
+          <option>Partial</option>
+        </select>
+      </div>
+      <div class="filter-summary" id="sa-filter-summary"></div>
       <table>
         <thead><tr><th>Date</th><th>Customer</th><th>Items</th><th>Total</th><th>Profit</th><th>Payment</th></tr></thead>
         <tbody id="sales-table"><tr><td colspan="6"><div class="empty"><div class="big">💰</div><p>Koi sale nahi</p></div></td></tr></tbody>
@@ -329,6 +409,7 @@ body.admin-mode .page-header .btn { display: none !important; }
       <div><h1>Expenses 💸</h1><p>Dukan ka kharcha</p></div>
       <button class="btn btn-primary staff-only" onclick="openModal('expense-modal')">+ Naya Kharcha</button>
     </div>
+    <div class="admin-banner">🔴 Admin Mode — Sirf View. Expense add karne ke liye staff se login karein.</div>
     <div class="alert success" id="expense-alert">Expense save ho gaya ✓</div>
     <div class="stats-grid" style="grid-template-columns:repeat(3,1fr)">
       <div class="stat-card red"><div class="stat-label">Is Mahine Kharcha</div><div class="stat-value red" id="e-month">₹0</div></div>
@@ -524,7 +605,7 @@ body.admin-mode .page-header .btn { display: none !important; }
         </div>
       </div>
 
-      <div class="form-group"><label>Quantity *</label><input id="pu-qty" type="number" placeholder="0" min="1" oninput="calcPuTotal()" onkeydown="if(event.key==='Enter')document.getElementById('pu-cost').focus()"></div>
+      <div class="form-group"><label id="pu-qty-label">Quantity *</label><input id="pu-qty" type="number" placeholder="0" min="0.01" step="0.01" oninput="calcPuTotal()" onkeydown="if(event.key==='Enter')document.getElementById('pu-cost').focus()"></div>
       <div class="form-group"><label>Purchase Rate (₹) *</label><input id="pu-cost" type="number" placeholder="0" oninput="calcPuTotal()" onkeydown="if(event.key==='Enter')addPuItem()"></div>
       <div class="form-group"><label>Payment</label><select id="pu-payment"><option>Paid</option><option>Unpaid</option><option>Partial</option></select></div>
       <div class="form-group"><label>Note</label><input id="pu-note" placeholder="Optional"></div>
@@ -549,12 +630,13 @@ body.admin-mode .page-header .btn { display: none !important; }
       <div class="form-group"><label>Date *</label><input id="sa-date" type="date"></div>
       <div class="form-group"><label>Customer Naam</label><input id="sa-customer" placeholder="Walk-in Customer"></div>
       <div class="form-group"><label>Product *</label><select id="sa-product" onchange="setSalePrice()"></select></div>
-      <div class="form-group"><label>Quantity *</label><input id="sa-qty" type="number" placeholder="0" min="1" oninput="calcSaleTotal()"></div>
+      <div class="form-group"><label id="sa-qty-label">Quantity *</label><input id="sa-qty" type="number" placeholder="0" min="0.01" step="0.01" oninput="calcSaleTotal()"></div>
       <div class="form-group"><label>Sale Price (₹) *</label><input id="sa-price" type="number" placeholder="0" oninput="calcSaleTotal()"></div>
       <div class="form-group"><label>Discount (₹)</label><input id="sa-discount" type="number" placeholder="0" value="0" oninput="calcSaleTotal()"></div>
       <div class="form-group"><label>Payment Status</label><select id="sa-payment"><option>Paid</option><option>Unpaid</option><option>Partial</option></select></div>
     </div>
     <div style="padding:12px 0;font-size:14px;color:var(--text2)">Total: <strong id="sa-total" style="color:var(--green)">₹0</strong> &nbsp;|&nbsp; Profit: <strong id="sa-profit-preview" style="color:var(--blue)">₹0</strong></div>
+    <div id="sa-meter-info" style="font-size:12px;color:var(--blue);margin-bottom:4px;min-height:16px;"></div>
     <div class="modal-actions">
       <button class="btn btn-secondary" onclick="closeModal('sale-modal')">Cancel</button>
       <button class="btn btn-primary" onclick="saveSale()">Save Sale</button>
@@ -709,9 +791,9 @@ async function loadFromSupabase() {
 }
 
 async function saveToSupabase() {
-  // ⛔ Admin sirf dekh sakta hai — data save/sync nahi kar sakta
-  if (currentUser && currentUser.role === 'admin') {
-    showSync('⛔ Admin account se data save nahi hoga. Staff se login karein.', 'red', 3000);
+  // ⛔ Admin sirf dekh sakta hai — data save/sync nahi hoga kabhi bhi
+  if (!currentUser || currentUser.role === 'admin') {
+    // Admin ke liye silently ignore karo, koi sync nahi
     return;
   }
   const json = JSON.stringify(DB);
@@ -760,12 +842,13 @@ async function doLogin() {
       badge.textContent = '🔴 Admin (View Only)';
       badge.className = 'role-badge admin';
       document.body.classList.add('admin-mode');
-      document.getElementById('settings-nav-btn').style.display = 'flex';
+      document.getElementById('settings-nav-btn').style.display = 'flex'; // admin ko settings dikhao
     } else {
+      // Staff — full access
       badge.textContent = '🟢 Staff (Full Access)';
       badge.className = 'role-badge staff';
       document.body.classList.remove('admin-mode');
-      document.getElementById('settings-nav-btn').style.display = 'none';
+      document.getElementById('settings-nav-btn').style.display = 'none'; // staff ko settings nahi
     }
     badgeWrap.style.display = 'block';
     loadFromSupabase();
@@ -849,7 +932,7 @@ const thisMonth = () => new Date().toISOString().slice(0, 7);
 
 // ====== PRODUCTS ======
 function saveProduct() {
-  if (currentUser && currentUser.role === 'admin') return alert('⛔ Admin sirf dekh sakta hai.');
+  if (!currentUser || currentUser.role === 'admin') return alert('⛔ Admin sirf dekh sakta hai. Product add karne ke liye staff account se login karein.');
   const code = document.getElementById('p-code').value.trim();
   const name = document.getElementById('p-name').value.trim();
   const sprice = parseFloat(document.getElementById('p-sprice').value);
@@ -860,24 +943,82 @@ function saveProduct() {
   ['p-code','p-name','p-size','p-sprice','p-pprice','p-stock'].forEach(id => document.getElementById(id).value = '');
   renderProducts();
 }
+let _activeCatFilter = 'all';
+let _activeStockCatFilter = 'all';
+let _activePuCatFilter = 'all';
+let _activeSaCatFilter = 'all';
+
+function _setCatBtnActive(btnClass, cat) {
+  document.querySelectorAll('.' + btnClass).forEach(b => {
+    b.style.background = ''; b.style.borderColor = ''; b.style.color = '';
+  });
+}
+function _highlightCatBtn(btn, cat) {
+  if (cat === 'all') { btn.style.background='rgba(244,162,97,0.2)'; btn.style.borderColor='var(--accent)'; btn.style.color='var(--accent)'; }
+  else if (cat === 'Cloth') { btn.style.background='rgba(123,94,167,0.3)'; btn.style.borderColor='#c084fc'; btn.style.color='#c084fc'; }
+  else { btn.style.background='rgba(76,201,240,0.2)'; btn.style.borderColor='var(--blue)'; btn.style.color='var(--blue)'; }
+}
+
+function setStockCatFilter(cat, btn) {
+  _activeStockCatFilter = cat;
+  _setCatBtnActive('st-cat-btn', cat);
+  _highlightCatBtn(btn, cat);
+  renderStock();
+}
+function setPuCatFilter(cat, btn) {
+  _activePuCatFilter = cat;
+  _setCatBtnActive('pu-cat-btn', cat);
+  _highlightCatBtn(btn, cat);
+  renderPurchases();
+}
+function setSaCatFilter(cat, btn) {
+  _activeSaCatFilter = cat;
+  _setCatBtnActive('sa-cat-btn', cat);
+  _highlightCatBtn(btn, cat);
+  renderSales();
+}
+function setCatFilter(cat, btn) {
+  _activeCatFilter = cat;
+  document.querySelectorAll('.cat-filter-btn').forEach(b => {
+    b.style.background = '';
+    b.style.borderColor = '';
+    b.style.color = '';
+    b.classList.remove('active');
+  });
+  btn.classList.add('active');
+  if (cat === 'all') {
+    btn.style.background = 'rgba(244,162,97,0.2)'; btn.style.borderColor = 'var(--accent)'; btn.style.color = 'var(--accent)';
+  } else if (cat === 'Cloth') {
+    btn.style.background = 'rgba(123,94,167,0.3)'; btn.style.borderColor = '#c084fc'; btn.style.color = '#c084fc';
+  } else {
+    btn.style.background = 'rgba(76,201,240,0.2)'; btn.style.borderColor = 'var(--blue)'; btn.style.color = 'var(--blue)';
+  }
+  const searchVal = document.getElementById('product-search-input')?.value || '';
+  renderProducts(searchVal);
+}
 function renderProducts(filter = '') {
-  const list = DB.products.filter(p => p.name.toLowerCase().includes(filter.toLowerCase()) || p.code.toLowerCase().includes(filter.toLowerCase()));
+  let list = DB.products.filter(p => {
+    const matchSearch = p.name.toLowerCase().includes(filter.toLowerCase()) || p.code.toLowerCase().includes(filter.toLowerCase());
+    const matchCat = _activeCatFilter === 'all' || p.cat === _activeCatFilter;
+    return matchSearch && matchCat;
+  });
   document.getElementById('product-count').textContent = `Products (${list.length})`;
   const tbody = document.getElementById('products-table');
   if (!list.length) { tbody.innerHTML = `<tr><td colspan="8"><div class="empty"><div class="big">👗</div><p>Koi product nahi</p></div></td></tr>`; return; }
-  tbody.innerHTML = list.map(p => `<tr><td><code style="color:var(--accent);font-size:12px">${p.code}</code></td><td><strong>${p.name}</strong></td><td><span class="badge ${p.cat === 'Cloth' ? 'cloth' : 'shoes'}">${p.cat}</span></td><td>${p.size || '—'}</td><td style="color:var(--green)">${rupee(p.salePrice)}</td><td style="color:var(--text2)">${rupee(p.purchasePrice)}</td><td><span class="badge ${p.stock <= p.reorder ? 'low' : 'ok'}">${p.stock} ${p.unit}</span></td><td>${currentUser && currentUser.role !== 'admin' ? `<button class="btn btn-danger btn-sm" onclick="deleteProduct('${p.id}')">🗑</button>` : '—'}</td></tr>`).join('');
+  tbody.innerHTML = list.map(p => `<tr><td><code style="color:var(--accent);font-size:12px">${p.code}</code></td><td><strong>${p.name}</strong></td><td><span class="badge ${p.cat === 'Cloth' ? 'cloth' : 'shoes'}">${p.cat}</span></td><td>${p.size || '—'}</td><td style="color:var(--green)">${rupee(p.salePrice)}</td><td style="color:var(--text2)">${rupee(p.purchasePrice)}</td><td><span class="badge ${p.stock <= p.reorder ? 'low' : 'ok'}">${p.stock} ${p.unit}</span></td><td class="action-col">${currentUser && currentUser.role !== 'admin' ? `<button class="btn btn-danger btn-sm" onclick="deleteProduct('${p.id}')">🗑</button>` : '—'}</td></tr>`).join('');
 }
-function deleteProduct(id) { if (currentUser && currentUser.role === 'admin') return; if (!confirm('Delete karein?')) return; DB.products = DB.products.filter(p => p.id !== id); save(); renderProducts(); }
+function deleteProduct(id) { if (!currentUser || currentUser.role === 'admin') return; if (!confirm('Delete karein?')) return; DB.products = DB.products.filter(p => p.id !== id); save(); renderProducts(); }
 function filterProducts(v) { renderProducts(v); }
 
 // ====== STOCK ======
 function renderStock() {
-  const prods = DB.products;
+  const allProds = DB.products;
+  const prods = _activeStockCatFilter === 'all' ? allProds : allProds.filter(p => p.cat === _activeStockCatFilter);
   document.getElementById('s-total').textContent = prods.reduce((a, p) => a + p.stock, 0);
   document.getElementById('s-low').textContent = prods.filter(p => p.stock <= p.reorder).length;
   document.getElementById('s-val').textContent = rupee(prods.reduce((a, p) => a + p.stock * p.purchasePrice, 0));
   const tbody = document.getElementById('stock-table');
-  if (!prods.length) { tbody.innerHTML = `<tr><td colspan="7"><div class="empty"><p>Pehle products add karein</p></div></td></tr>`; return; }
+  if (!prods.length) { tbody.innerHTML = `<tr><td colspan="7"><div class="empty"><p>${_activeStockCatFilter === 'all' ? 'Pehle products add karein' : _activeStockCatFilter + ' ka koi product nahi'}</p></div></td></tr>`; return; }
   tbody.innerHTML = prods.map(p => `<tr><td><code style="color:var(--accent);font-size:12px">${p.code}</code></td><td>${p.name}</td><td><span class="badge ${p.cat === 'Cloth' ? 'cloth' : 'shoes'}">${p.cat}</span></td><td><strong style="font-size:16px">${p.stock}</strong> ${p.unit}</td><td>${p.reorder}</td><td><span class="badge ${p.stock <= p.reorder ? 'low' : 'ok'}">${p.stock <= p.reorder ? '⚠ Low' : '✓ OK'}</span></td><td style="color:var(--accent)">${rupee(p.stock * p.purchasePrice)}</td></tr>`).join('');
 }
 
@@ -949,6 +1090,19 @@ function selectPuProduct(id) {
   document.getElementById('new-prod-section').style.display = 'none';
   // Auto-fill rate from product
   document.getElementById('pu-cost').value = prod.purchasePrice;
+  // Meter product ke liye label update karo
+  const isMeter = prod.unit === 'meter';
+  const qtyLabel = document.getElementById('pu-qty-label');
+  const qtyInput = document.getElementById('pu-qty');
+  if (isMeter) {
+    qtyLabel.textContent = '📏 Meter (e.g. 1, 1.5, 5)';
+    qtyInput.step = '0.25';
+    qtyInput.placeholder = '1.5';
+  } else {
+    qtyLabel.textContent = 'Quantity *';
+    qtyInput.step = '1';
+    qtyInput.placeholder = '0';
+  }
   // Show stock info
   document.getElementById('pu-stock-info').style.display = 'flex';
   document.getElementById('pu-stock-now').textContent = prod.stock + ' ' + (prod.unit || 'piece');
@@ -1002,7 +1156,7 @@ function calcPuTotal() {
 }
 
 function addPuItem() {
-  const qty = parseInt(document.getElementById('pu-qty').value);
+  const qty = parseFloat(document.getElementById('pu-qty').value);
   const cost = parseFloat(document.getElementById('pu-cost').value);
   if (!qty || qty < 1) return alert('Quantity bharein!');
   if (!cost || cost < 1) return alert('Purchase rate bharein!');
@@ -1053,7 +1207,7 @@ function addPuItem() {
 }
 
 function savePurchase() {
-  if (currentUser && currentUser.role === 'admin') return alert('⛔ Admin sirf dekh sakta hai. Purchase add karne ke liye staff account se login karein.');
+  if (!currentUser || currentUser.role === 'admin') return alert('⛔ Admin sirf dekh sakta hai. Purchase add karne ke liye staff account se login karein.');
   const date     = document.getElementById('pu-date').value;
   const supplier = document.getElementById('pu-supplier').value.trim() || 'Unknown';
   const payment  = document.getElementById('pu-payment').value;
@@ -1086,6 +1240,7 @@ function savePurchase() {
     DB.purchases.push({
       id: uid(), date, supplier,
       productId: prod.id, productName: item.name,
+      unit: prod.unit || 'piece',
       qty: item.qty, cost: item.cost, total: item.qty * item.cost,
       payment, note
     });
@@ -1100,57 +1255,181 @@ function savePurchase() {
   renderStock();
 }
 function renderPurchases() {
-  const list = [...DB.purchases].reverse();
+  const from    = document.getElementById('pu-f-from')?.value || '';
+  const to      = document.getElementById('pu-f-to')?.value || '';
+  const search  = (document.getElementById('pu-f-search')?.value || '').toLowerCase();
+  const payment = document.getElementById('pu-f-payment')?.value || '';
+
+  let list = [...DB.purchases].reverse().filter(p => {
+    if (from && p.date < from) return false;
+    if (to   && p.date > to)   return false;
+    if (search && !p.productName.toLowerCase().includes(search) && !(p.supplier||'').toLowerCase().includes(search)) return false;
+    if (payment && p.payment !== payment) return false;
+    if (_activePuCatFilter !== 'all') {
+      const prod = DB.products.find(pr => pr.id === p.productId);
+      if (!prod || prod.cat !== _activePuCatFilter) return false;
+    }
+    return true;
+  });
+
+  const total = list.reduce((a, p) => a + p.total, 0);
+  const qty   = list.reduce((a, p) => a + p.qty, 0);
   document.getElementById('purchase-count').textContent = `Purchases (${list.length})`;
+
+  const sumEl = document.getElementById('pu-filter-summary');
+  if (sumEl) sumEl.innerHTML = list.length
+    ? `<span>📦 ${list.length} records</span><span>🔢 Total Qty: <strong>${qty}</strong></span><span>💰 Total Amount: <strong style="color:var(--accent)">${rupee(total)}</strong></span>`
+    : '';
+
   const tbody = document.getElementById('purchases-table');
-  if (!list.length) { tbody.innerHTML = `<tr><td colspan="5"><div class="empty"><div class="big">🛒</div><p>Koi purchase nahi</p></div></td></tr>`; return; }
-  tbody.innerHTML = list.map(p => `<tr><td>${p.date}</td><td>${p.supplier}</td><td>${p.productName} × ${p.qty}</td><td style="color:var(--accent)">${rupee(p.total)}</td><td><span class="badge ${p.payment === 'Paid' ? 'ok' : 'low'}">${p.payment}</span></td></tr>`).join('');
+  if (!list.length) { tbody.innerHTML = `<tr><td colspan="5"><div class="empty"><div class="big">🛒</div><p>Koi purchase nahi mila</p></div></td></tr>`; return; }
+  tbody.innerHTML = list.map(p => `<tr>
+    <td>${p.date}</td>
+    <td>${p.supplier || '—'}</td>
+    <td>${p.productName} × ${p.qty}${p.unit === 'meter' ? ' mtr' : ''}</td>
+    <td style="color:var(--accent)">${rupee(p.total)}</td>
+    <td><span class="badge ${p.payment === 'Paid' ? 'ok' : p.payment === 'Unpaid' ? 'low' : 'cloth'}">${p.payment}</span></td>
+  </tr>`).join('');
+}
+
+// Quick filter helpers — Purchase
+let _puFilterActive = 'all';
+function setPuFilter(type, btn) {
+  _puFilterActive = type;
+  document.querySelectorAll('#page-purchases .qbtn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const today = todayStr();
+  const fromEl = document.getElementById('pu-f-from');
+  const toEl   = document.getElementById('pu-f-to');
+  if (type === 'all')   { fromEl.value = ''; toEl.value = ''; }
+  if (type === 'today') { fromEl.value = today; toEl.value = today; }
+  if (type === 'week')  {
+    const d = new Date(); d.setDate(d.getDate() - d.getDay());
+    fromEl.value = d.toISOString().split('T')[0]; toEl.value = today;
+  }
+  if (type === 'month') { fromEl.value = today.slice(0,7) + '-01'; toEl.value = today; }
+  renderPurchases();
 }
 
 // ====== SALES ======
 function setSalePrice() {
   const pid = document.getElementById('sa-product').value;
   const prod = DB.products.find(p => p.id === pid);
-  if (prod) { document.getElementById('sa-price').value = prod.salePrice; calcSaleTotal(); }
+  if (prod) {
+    document.getElementById('sa-price').value = prod.salePrice;
+    const isMeter = prod.unit === 'meter';
+    const qtyLabel = document.getElementById('sa-qty-label');
+    const qtyInput = document.getElementById('sa-qty');
+    if (isMeter) {
+      qtyLabel.textContent = '📏 Meter (e.g. 1, 1.5, 2.5)';
+      qtyInput.step = '0.25';
+      qtyInput.placeholder = '1.5';
+    } else {
+      qtyLabel.textContent = 'Quantity *';
+      qtyInput.step = '1';
+      qtyInput.placeholder = '0';
+    }
+    calcSaleTotal();
+  }
 }
 function calcSaleTotal() {
   const q = parseFloat(document.getElementById('sa-qty').value) || 0;
   const price = parseFloat(document.getElementById('sa-price').value) || 0;
   const disc = parseFloat(document.getElementById('sa-discount').value) || 0;
   const total = (q * price) - disc;
-  document.getElementById('sa-total').textContent = rupee(Math.max(total, 0));
   const pid = document.getElementById('sa-product').value;
   const prod = DB.products.find(p => p.id === pid);
+  const isMeter = prod && prod.unit === 'meter';
+  const qtyDisplay = isMeter ? `${q} mtr` : `${q}`;
+  document.getElementById('sa-total').textContent = rupee(Math.max(total, 0));
   const profit = prod ? total - (q * prod.purchasePrice) : 0;
   document.getElementById('sa-profit-preview').textContent = rupee(profit);
+  if (isMeter && q > 0) {
+    const infoEl = document.getElementById('sa-meter-info');
+    if (infoEl) infoEl.textContent = `📏 ${qtyDisplay} × ₹${price}/mtr = ₹${(q*price).toLocaleString('en-IN')}`;
+  }
 }
 function saveSale() {
-  if (currentUser && currentUser.role === 'admin') return alert('⛔ Admin sirf dekh sakta hai. Sale add karne ke liye staff account se login karein.');
+  if (!currentUser || currentUser.role === 'admin') return alert('⛔ Admin sirf dekh sakta hai. Sale add karne ke liye staff account se login karein.');
   const pid = document.getElementById('sa-product').value;
   const prod = DB.products.find(p => p.id === pid);
   if (!prod) return alert('Product select karein!');
-  const qty = parseInt(document.getElementById('sa-qty').value);
+  const qty = parseFloat(document.getElementById('sa-qty').value);
   const price = parseFloat(document.getElementById('sa-price').value);
   const disc = parseFloat(document.getElementById('sa-discount').value) || 0;
   if (!qty || !price) return alert('Quantity aur price bharein!');
-  if (prod.stock < qty) return alert('Stock kam hai! Available: ' + prod.stock);
+  if (prod.unit === 'meter') {
+    if (prod.stock < qty) return alert(`Stock kam hai! Available: ${prod.stock} meter`);
+  } else {
+    if (prod.stock < qty) return alert('Stock kam hai! Available: ' + prod.stock);
+  }
   const total = (qty * price) - disc;
   const profit = total - (qty * prod.purchasePrice);
-  DB.sales.push({ id: uid(), date: document.getElementById('sa-date').value, customer: document.getElementById('sa-customer').value || 'Walk-in', productId: prod.id, productName: prod.name, qty, price, discount: disc, total, profit, payment: document.getElementById('sa-payment').value });
+  DB.sales.push({ id: uid(), date: document.getElementById('sa-date').value, customer: document.getElementById('sa-customer').value || 'Walk-in', productId: prod.id, productName: prod.name, unit: prod.unit || 'piece', qty, price, discount: disc, total, profit, payment: document.getElementById('sa-payment').value });
   prod.stock -= qty;
   save(); closeModal('sale-modal'); showAlert('sale-alert'); renderSales();
 }
 function renderSales() {
-  const list = [...DB.sales].reverse();
+  const from    = document.getElementById('sa-f-from')?.value || '';
+  const to      = document.getElementById('sa-f-to')?.value || '';
+  const search  = (document.getElementById('sa-f-search')?.value || '').toLowerCase();
+  const payment = document.getElementById('sa-f-payment')?.value || '';
+
+  let list = [...DB.sales].reverse().filter(s => {
+    if (from && s.date < from) return false;
+    if (to   && s.date > to)   return false;
+    if (search && !s.productName.toLowerCase().includes(search) && !(s.customer||'').toLowerCase().includes(search)) return false;
+    if (payment && s.payment !== payment) return false;
+    if (_activeSaCatFilter !== 'all') {
+      const prod = DB.products.find(p => p.id === s.productId);
+      if (!prod || prod.cat !== _activeSaCatFilter) return false;
+    }
+    return true;
+  });
+
+  const totalRev  = list.reduce((a, s) => a + s.total, 0);
+  const totalProfit = list.reduce((a, s) => a + s.profit, 0);
   document.getElementById('sale-count').textContent = `Sales (${list.length})`;
+
+  const sumEl = document.getElementById('sa-filter-summary');
+  if (sumEl) sumEl.innerHTML = list.length
+    ? `<span>🧾 ${list.length} records</span><span>💰 Revenue: <strong style="color:var(--green)">${rupee(totalRev)}</strong></span><span>📈 Profit: <strong style="color:${totalProfit>=0?'var(--blue)':'var(--red)'}">${rupee(totalProfit)}</strong></span>`
+    : '';
+
   const tbody = document.getElementById('sales-table');
-  if (!list.length) { tbody.innerHTML = `<tr><td colspan="6"><div class="empty"><div class="big">💰</div><p>Koi sale nahi</p></div></td></tr>`; return; }
-  tbody.innerHTML = list.map(s => `<tr><td>${s.date}</td><td>${s.customer}</td><td>${s.productName} × ${s.qty}</td><td style="color:var(--green)">${rupee(s.total)}</td><td style="color:${s.profit >= 0 ? 'var(--blue)' : 'var(--red)'}">${rupee(s.profit)}</td><td><span class="badge ${s.payment === 'Paid' ? 'ok' : 'low'}">${s.payment}</span></td></tr>`).join('');
+  if (!list.length) { tbody.innerHTML = `<tr><td colspan="6"><div class="empty"><div class="big">💰</div><p>Koi sale nahi mili</p></div></td></tr>`; return; }
+  tbody.innerHTML = list.map(s => `<tr>
+    <td>${s.date}</td>
+    <td>${s.customer || 'Walk-in'}</td>
+    <td>${s.productName} × ${s.qty}${s.unit === 'meter' ? ' mtr' : (s.unit === 'pair' ? ' pair' : '')}</td>
+    <td style="color:var(--green)">${rupee(s.total)}</td>
+    <td style="color:${s.profit >= 0 ? 'var(--blue)' : 'var(--red)'}">${rupee(s.profit)}</td>
+    <td><span class="badge ${s.payment === 'Paid' ? 'ok' : s.payment === 'Unpaid' ? 'low' : 'cloth'}">${s.payment}</span></td>
+  </tr>`).join('');
+}
+
+// Quick filter helpers — Sales
+let _saFilterActive = 'all';
+function setSaFilter(type, btn) {
+  _saFilterActive = type;
+  document.querySelectorAll('#page-sales .qbtn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const today = todayStr();
+  const fromEl = document.getElementById('sa-f-from');
+  const toEl   = document.getElementById('sa-f-to');
+  if (type === 'all')   { fromEl.value = ''; toEl.value = ''; }
+  if (type === 'today') { fromEl.value = today; toEl.value = today; }
+  if (type === 'week')  {
+    const d = new Date(); d.setDate(d.getDate() - d.getDay());
+    fromEl.value = d.toISOString().split('T')[0]; toEl.value = today;
+  }
+  if (type === 'month') { fromEl.value = today.slice(0,7) + '-01'; toEl.value = today; }
+  renderSales();
 }
 
 // ====== EXPENSES ======
 function saveExpense() {
-  if (currentUser && currentUser.role === 'admin') return alert('⛔ Admin sirf dekh sakta hai.');
+  if (!currentUser || currentUser.role === 'admin') return alert('⛔ Admin sirf dekh sakta hai. Expense add karne ke liye staff account se login karein.');
   const amount = parseFloat(document.getElementById('ex-amount').value);
   if (!amount) return alert('Amount bharein!');
   DB.expenses.push({ id: uid(), date: document.getElementById('ex-date').value, cat: document.getElementById('ex-cat').value, desc: document.getElementById('ex-desc').value, amount });
