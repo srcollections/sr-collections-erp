@@ -97,6 +97,37 @@ select option { background: var(--surface); }
 .alert { padding: 12px 16px; border-radius: 10px; font-size: 13px; margin-bottom: 16px; display: none; }
 .alert.success { background: rgba(82,183,136,0.15); color: var(--green); border: 1px solid rgba(82,183,136,0.3); }
 .alert.show { display: block; }
+/* Partial Payment Box */
+.partial-box { grid-column: 1/-1; background: rgba(244,162,97,0.06); border: 1px solid rgba(244,162,97,0.25); border-radius: 10px; padding: 14px; display: none; }
+.partial-box.show { display: block; }
+.partial-box-title { font-size: 11px; color: var(--accent); font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 10px; }
+.partial-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+.partial-total-display { background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 9px; padding: 10px 14px; font-size: 18px; font-weight: 700; color: var(--text); font-family: var(--font-head); display: flex; align-items: center; }
+.balance-display { background: rgba(230,57,70,0.10); border: 1px solid rgba(230,57,70,0.25); border-radius: 9px; padding: 10px 14px; font-size: 18px; font-weight: 700; color: var(--red); font-family: var(--font-head); display: flex; align-items: center; }
+.balance-display.zero { background: rgba(82,183,136,0.10); border-color: rgba(82,183,136,0.3); color: var(--green); }
+/* Udhar Cards on Dashboard */
+.udhar-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+.udhar-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+.udhar-card-header { padding: 14px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+.udhar-card-header.purchase { border-left: 4px solid var(--accent); }
+.udhar-card-header.sales { border-left: 4px solid var(--red); }
+.udhar-total { font-family: var(--font-head); font-size: 22px; font-weight: 700; }
+.udhar-total.purchase { color: var(--accent); }
+.udhar-total.sales { color: var(--red); }
+.udhar-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 18px; border-bottom: 1px solid var(--border); font-size: 13px; gap: 8px; }
+.udhar-row:last-child { border-bottom: none; }
+.udhar-name { font-weight: 600; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.udhar-cols { display: flex; gap: 10px; align-items: center; flex-shrink: 0; font-size: 12px; }
+.udhar-cols span { text-align: right; min-width: 65px; }
+.udhar-table-head { display: flex; justify-content: space-between; padding: 7px 18px; background: rgba(255,255,255,0.03); font-size: 10px; color: var(--text2); text-transform: uppercase; letter-spacing: 1px; gap: 8px; }
+.udhar-table-head .udhar-cols { gap: 10px; font-size: 10px; }
+.udhar-table-head .udhar-cols span { min-width: 65px; }
+.pay-btn { padding: 4px 10px; border-radius: 6px; border: 1px solid rgba(82,183,136,0.35); background: rgba(82,183,136,0.10); color: var(--green); font-size: 11px; font-weight: 700; cursor: pointer; white-space: nowrap; transition: all 0.15s; font-family: var(--font-body); flex-shrink: 0; }
+.pay-btn:hover { background: rgba(82,183,136,0.22); border-color: var(--green); }
+/* Udhar Pay Modal */
+.udhar-pay-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
+.udhar-pay-row:last-child { border-bottom: none; }
+.udhar-pay-badge { display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 8px; font-size: 13px; font-weight: 600; }
 /* Product Search Autocomplete */
 .product-search-wrap { position: relative; }
 .product-dropdown { position: absolute; top: 100%; left: 0; right: 0; background: var(--surface2); border: 1px solid rgba(244,162,97,0.3); border-radius: 10px; z-index: 2000; max-height: 220px; overflow-y: auto; display: none; margin-top: 4px; box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
@@ -244,15 +275,65 @@ body.admin-mode .admin-banner { display: block; }
 <main class="main">
   <!-- DASHBOARD -->
   <div id="page-dashboard" class="page active">
-    <div class="page-header">
-      <h1>Dashboard 📊</h1>
-      <p id="dash-date" style="color:var(--text2);font-size:14px;margin-top:4px;"></p>
+    <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px">
+      <div>
+        <h1>Dashboard 📊</h1>
+        <p id="dash-date" style="color:var(--text2);font-size:14px;margin-top:4px;"></p>
+      </div>
+      <div class="staff-only" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <button class="btn btn-secondary" onclick="openModal('purchase-modal')" style="border-color:rgba(244,162,97,0.4);color:var(--accent)">🛒 Naya Purchase</button>
+        <button class="btn btn-primary" onclick="openModal('sale-modal')">💰 Naya Sale</button>
+        <button class="btn btn-secondary" onclick="openModal('expense-modal')" style="border-color:rgba(230,57,70,0.3);color:var(--red)">💸 Kharcha</button>
+      </div>
     </div>
     <div class="stats-grid">
       <div class="stat-card green"><div class="stat-label">Aaj ki Bikri</div><div class="stat-value green" id="d-today-sale">₹0</div><div class="stat-sub" id="d-today-items">0 sales aaj</div></div>
       <div class="stat-card orange"><div class="stat-label">Total Stock Value</div><div class="stat-value orange" id="d-stock-val">₹0</div><div class="stat-sub" id="d-stock-items">0 products</div></div>
       <div class="stat-card blue"><div class="stat-label">Is Mahine Profit</div><div class="stat-value blue" id="d-month-profit">₹0</div><div class="stat-sub" id="d-month-sales">0 sales this month</div></div>
       <div class="stat-card red"><div class="stat-label">Low Stock Alert</div><div class="stat-value red" id="d-low-stock">0</div><div class="stat-sub">items kam hain</div></div>
+    </div>
+
+    <!-- UDHAR SECTION -->
+    <div class="udhar-grid">
+      <!-- Purchase Udhar -->
+      <div class="udhar-card">
+        <div class="udhar-card-header purchase">
+          <div>
+            <div style="font-size:12px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">🛒 Purchase Udhar (Humara)</div>
+            <div class="udhar-total purchase" id="d-pu-udhar-total">₹0</div>
+            <div style="font-size:12px;color:var(--text2);margin-top:3px" id="d-pu-udhar-sub">Supplier ko dena baaki</div>
+          </div>
+        </div>
+        <div class="udhar-table-head">
+          <span>Supplier</span>
+          <div class="udhar-cols">
+            <span>Total</span>
+            <span style="color:var(--green)">Diya</span>
+            <span style="color:var(--red)">Baaki</span>
+          </div>
+        </div>
+        <div id="d-pu-udhar-list"><div class="empty" style="padding:20px"><p>Koi udhar nahi 🎉</p></div></div>
+      </div>
+
+      <!-- Sales Udhar -->
+      <div class="udhar-card">
+        <div class="udhar-card-header sales">
+          <div>
+            <div style="font-size:12px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">💰 Sales Udhar (Customer Ka)</div>
+            <div class="udhar-total sales" id="d-sa-udhar-total">₹0</div>
+            <div style="font-size:12px;color:var(--text2);margin-top:3px" id="d-sa-udhar-sub">Customers se lena baaki</div>
+          </div>
+        </div>
+        <div class="udhar-table-head">
+          <span>Customer</span>
+          <div class="udhar-cols">
+            <span>Total</span>
+            <span style="color:var(--green)">Liya</span>
+            <span style="color:var(--red)">Baaki</span>
+          </div>
+        </div>
+        <div id="d-sa-udhar-list"><div class="empty" style="padding:20px"><p>Koi udhar nahi 🎉</p></div></div>
+      </div>
     </div>
     <div class="charts-row">
       <div class="card">
@@ -356,8 +437,8 @@ body.admin-mode .admin-banner { display: block; }
       </div>
       <div class="filter-summary" id="pu-filter-summary"></div>
       <table>
-        <thead><tr><th>Date</th><th>Supplier</th><th>Items</th><th>Total</th><th>Payment</th></tr></thead>
-        <tbody id="purchases-table"><tr><td colspan="5"><div class="empty"><div class="big">🛒</div><p>Koi purchase nahi</p></div></td></tr></tbody>
+        <thead><tr><th>Date</th><th>Supplier</th><th>Items</th><th>Total</th><th>Diya</th><th>Baaki</th><th>Payment</th></tr></thead>
+        <tbody id="purchases-table"><tr><td colspan="7"><div class="empty"><div class="big">🛒</div><p>Koi purchase nahi</p></div></td></tr></tbody>
       </table>
     </div>
   </div>
@@ -397,8 +478,8 @@ body.admin-mode .admin-banner { display: block; }
       </div>
       <div class="filter-summary" id="sa-filter-summary"></div>
       <table>
-        <thead><tr><th>Date</th><th>Customer</th><th>Items</th><th>Total</th><th>Profit</th><th>Payment</th></tr></thead>
-        <tbody id="sales-table"><tr><td colspan="6"><div class="empty"><div class="big">💰</div><p>Koi sale nahi</p></div></td></tr></tbody>
+        <thead><tr><th>Date</th><th>Customer</th><th>Items</th><th>Total</th><th>Liya</th><th>Baaki</th><th>Profit</th><th>Payment</th></tr></thead>
+        <tbody id="sales-table"><tr><td colspan="8"><div class="empty"><div class="big">💰</div><p>Koi sale nahi</p></div></td></tr></tbody>
       </table>
     </div>
   </div>
@@ -607,8 +688,27 @@ body.admin-mode .admin-banner { display: block; }
 
       <div class="form-group"><label id="pu-qty-label">Quantity *</label><input id="pu-qty" type="number" placeholder="0" min="0.01" step="0.01" oninput="calcPuTotal()" onkeydown="if(event.key==='Enter')document.getElementById('pu-cost').focus()"></div>
       <div class="form-group"><label>Purchase Rate (₹) *</label><input id="pu-cost" type="number" placeholder="0" oninput="calcPuTotal()" onkeydown="if(event.key==='Enter')addPuItem()"></div>
-      <div class="form-group"><label>Payment</label><select id="pu-payment"><option>Paid</option><option>Unpaid</option><option>Partial</option></select></div>
+      <div class="form-group"><label>Payment</label><select id="pu-payment" onchange="togglePartialPay('pu')"><option>Paid</option><option>Unpaid</option><option>Partial</option></select></div>
       <div class="form-group"><label>Note</label><input id="pu-note" placeholder="Optional"></div>
+
+      <!-- Partial Payment Box -->
+      <div class="partial-box" id="pu-partial-box">
+        <div class="partial-box-title">💵 Partial Payment Details</div>
+        <div class="partial-grid">
+          <div class="form-group">
+            <label>Kul Rakam (Total ₹)</label>
+            <div class="partial-total-display" id="pu-partial-total-display">₹0</div>
+          </div>
+          <div class="form-group">
+            <label>Kitna Diya (₹) *</label>
+            <input id="pu-paid-amount" type="number" placeholder="0" min="0" oninput="calcPuBalance()">
+          </div>
+          <div class="form-group">
+            <label>Balance Bacha (₹)</label>
+            <div class="balance-display" id="pu-balance-display">₹0</div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0 4px">
@@ -633,10 +733,29 @@ body.admin-mode .admin-banner { display: block; }
       <div class="form-group"><label id="sa-qty-label">Quantity *</label><input id="sa-qty" type="number" placeholder="0" min="0.01" step="0.01" oninput="calcSaleTotal()"></div>
       <div class="form-group"><label>Sale Price (₹) *</label><input id="sa-price" type="number" placeholder="0" oninput="calcSaleTotal()"></div>
       <div class="form-group"><label>Discount (₹)</label><input id="sa-discount" type="number" placeholder="0" value="0" oninput="calcSaleTotal()"></div>
-      <div class="form-group"><label>Payment Status</label><select id="sa-payment"><option>Paid</option><option>Unpaid</option><option>Partial</option></select></div>
+      <div class="form-group"><label>Payment Status</label><select id="sa-payment" onchange="togglePartialPay('sa')"><option>Paid</option><option>Unpaid</option><option>Partial</option></select></div>
     </div>
     <div style="padding:12px 0;font-size:14px;color:var(--text2)">Total: <strong id="sa-total" style="color:var(--green)">₹0</strong> &nbsp;|&nbsp; Profit: <strong id="sa-profit-preview" style="color:var(--blue)">₹0</strong></div>
     <div id="sa-meter-info" style="font-size:12px;color:var(--blue);margin-bottom:4px;min-height:16px;"></div>
+
+    <!-- Partial Payment Box -->
+    <div class="partial-box" id="sa-partial-box" style="margin-bottom:12px">
+      <div class="partial-box-title">💵 Partial Payment Details</div>
+      <div class="partial-grid">
+        <div class="form-group">
+          <label>Kul Rakam (Total ₹)</label>
+          <div class="partial-total-display" id="sa-partial-total-display">₹0</div>
+        </div>
+        <div class="form-group">
+          <label>Kitna Liya (₹) *</label>
+          <input id="sa-paid-amount" type="number" placeholder="0" min="0" oninput="calcSaBalance()">
+        </div>
+        <div class="form-group">
+          <label>Customer Ka Balance (₹)</label>
+          <div class="balance-display" id="sa-balance-display">₹0</div>
+        </div>
+      </div>
+    </div>
     <div class="modal-actions">
       <button class="btn btn-secondary" onclick="closeModal('sale-modal')">Cancel</button>
       <button class="btn btn-primary" onclick="saveSale()">Save Sale</button>
@@ -695,6 +814,51 @@ body.admin-mode .admin-banner { display: block; }
   </div>
 </div>
 
+<!-- UDHAR PAYMENT MODAL -->
+<div class="overlay" id="udhar-pay-modal">
+  <div class="modal" style="width:440px">
+    <h2>💳 Udhar Payment Record Karein</h2>
+    <input type="hidden" id="upm-type">
+    <input type="hidden" id="upm-name">
+
+    <!-- Summary -->
+    <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:18px">
+      <div class="udhar-pay-row">
+        <span style="color:var(--text2)">Naam</span>
+        <strong id="upm-display-name" style="color:var(--accent)">—</strong>
+      </div>
+      <div class="udhar-pay-row">
+        <span style="color:var(--text2)">Kul Baaki (Total Balance)</span>
+        <strong id="upm-total-balance" style="color:var(--red);font-size:18px;font-family:var(--font-head)">₹0</strong>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div class="form-group">
+        <label>📅 Date</label>
+        <input type="date" id="upm-date">
+      </div>
+      <div class="form-group">
+        <label>💵 Kitna Diya / Mila (₹) *</label>
+        <input type="number" id="upm-amount" placeholder="0" min="1" oninput="calcUpmNewBalance()">
+      </div>
+      <div style="background:rgba(82,183,136,0.08);border:1px solid rgba(82,183,136,0.25);border-radius:10px;padding:14px">
+        <div style="font-size:11px;color:var(--green);font-weight:700;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:8px">✅ Baad Mein Baaki Rahega</div>
+        <div id="upm-new-balance" style="font-family:var(--font-head);font-size:28px;font-weight:700;color:var(--green)">₹0</div>
+      </div>
+      <div class="form-group">
+        <label>📝 Note (optional)</label>
+        <input type="text" id="upm-note" placeholder="e.g. Cash diya, Online transfer...">
+      </div>
+    </div>
+
+    <div class="modal-actions" style="margin-top:20px">
+      <button class="btn btn-secondary" onclick="closeModal('udhar-pay-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveUdharPayment()">✅ Payment Save Karein</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ====== SUPABASE SETUP ======
 const SUPABASE_URL = 'https://rdfenvaygprunexpyvbo.supabase.co';
@@ -702,7 +866,7 @@ const SUPABASE_KEY = 'sb_publishable_LRq7dGlrzlrmFSsSQNr8KA_kLHBbGaj';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // ====== DATA STORE ======
-let DB = { products: [], purchases: [], sales: [], expenses: [], staff: [], salaries: [] };
+let DB = { products: [], purchases: [], sales: [], expenses: [], staff: [], salaries: [], udharPayments: [] };
 let currentUser = null;
 
 // ====== DEFAULT USERS (fallback only) ======
@@ -900,11 +1064,22 @@ function openModal(id) {
     document.getElementById('pu-note').value = '';
     document.getElementById('pu-total').textContent = '₹0';
     document.getElementById('pu-add-btn').style.display = 'none';
+    document.getElementById('pu-payment').value = 'Paid';
+    document.getElementById('pu-partial-box').classList.remove('show');
+    document.getElementById('pu-paid-amount').value = '';
+    document.getElementById('pu-balance-display').textContent = '₹0';
     _puItems = [];
     renderPuItemsList();
     setTimeout(() => document.getElementById('pu-product-search').focus(), 100);
   }
-  if (id === 'sale-modal') { document.getElementById('sa-date').value = today; populateProductSelect('sa-product'); }
+  if (id === 'sale-modal') {
+    document.getElementById('sa-date').value = today;
+    document.getElementById('sa-payment').value = 'Paid';
+    document.getElementById('sa-partial-box').classList.remove('show');
+    document.getElementById('sa-paid-amount').value = '';
+    document.getElementById('sa-balance-display').textContent = '₹0';
+    populateProductSelect('sa-product');
+  }
   if (id === 'expense-modal') document.getElementById('ex-date').value = today;
   if (id === 'staff-modal') document.getElementById('st-join').value = today;
   if (id === 'salary-modal') {
@@ -930,7 +1105,93 @@ const uid = () => Date.now() + Math.random().toString(36).slice(2, 6);
 const todayStr = () => new Date().toISOString().split('T')[0];
 const thisMonth = () => new Date().toISOString().slice(0, 7);
 
-// ====== PRODUCTS ======
+// ====== PARTIAL PAYMENT TOGGLE ======
+function togglePartialPay(prefix) {
+  const payment = document.getElementById(prefix + '-payment').value;
+  const box = document.getElementById(prefix + '-partial-box');
+  if (payment === 'Partial') {
+    box.classList.add('show');
+    if (prefix === 'pu') calcPuBalance();
+    else {
+      // Show current total immediately
+      const totalTxt = document.getElementById('sa-total').textContent.replace(/[₹,]/g, '').trim();
+      document.getElementById('sa-partial-total-display').textContent = document.getElementById('sa-total').textContent || '₹0';
+      calcSaBalance();
+    }
+  } else {
+    box.classList.remove('show');
+  }
+}
+
+function calcPuBalance() {
+  // Calculate from items subtotal
+  const subtotal = _puItems.reduce((a, it) => a + it.qty * it.cost, 0);
+  // Also check current item fields
+  const curQty = parseFloat(document.getElementById('pu-qty').value) || 0;
+  const curCost = parseFloat(document.getElementById('pu-cost').value) || 0;
+  const grandTotal = subtotal + (curQty * curCost);
+  const paid = parseFloat(document.getElementById('pu-paid-amount').value) || 0;
+  const balance = Math.max(grandTotal - paid, 0);
+  document.getElementById('pu-partial-total-display').textContent = rupee(grandTotal);
+  const el = document.getElementById('pu-balance-display');
+  el.textContent = rupee(balance);
+  el.className = 'balance-display' + (balance === 0 ? ' zero' : '');
+}
+
+function calcSaBalance() {
+  const totalTxt = document.getElementById('sa-total').textContent.replace(/[₹,]/g, '').trim();
+  const total = parseFloat(totalTxt) || 0;
+  const paid = parseFloat(document.getElementById('sa-paid-amount').value) || 0;
+  const balance = Math.max(total - paid, 0);
+  document.getElementById('sa-partial-total-display').textContent = rupee(total);
+  const el = document.getElementById('sa-balance-display');
+  el.textContent = rupee(balance);
+  el.className = 'balance-display' + (balance === 0 ? ' zero' : '');
+}
+
+// ====== UDHAR PAYMENT (Baad mein dena/lena) ======
+let _upmCurrentBalance = 0;
+
+function openUdharPayment(type, name, currentBalance) {
+  if (!currentUser || currentUser.role === 'admin') return alert('⛔ Admin sirf dekh sakta hai.');
+  _upmCurrentBalance = currentBalance;
+  document.getElementById('upm-type').value = type;
+  document.getElementById('upm-name').value = name;
+  document.getElementById('upm-display-name').textContent = name;
+  document.getElementById('upm-total-balance').textContent = rupee(currentBalance);
+  document.getElementById('upm-amount').value = '';
+  document.getElementById('upm-note').value = '';
+  document.getElementById('upm-new-balance').textContent = rupee(currentBalance);
+  document.getElementById('upm-new-balance').style.color = 'var(--green)';
+  document.getElementById('upm-date').value = todayStr();
+  document.getElementById('udhar-pay-modal').classList.add('show');
+}
+
+function calcUpmNewBalance() {
+  const amt = parseFloat(document.getElementById('upm-amount').value) || 0;
+  const newBal = Math.max(_upmCurrentBalance - amt, 0);
+  const el = document.getElementById('upm-new-balance');
+  el.textContent = rupee(newBal);
+  el.style.color = newBal === 0 ? 'var(--green)' : newBal < _upmCurrentBalance / 2 ? 'var(--accent)' : 'var(--red)';
+}
+
+function saveUdharPayment() {
+  if (!currentUser || currentUser.role === 'admin') return;
+  const type = document.getElementById('upm-type').value;
+  const name = document.getElementById('upm-name').value;
+  const amt  = parseFloat(document.getElementById('upm-amount').value);
+  const date = document.getElementById('upm-date').value;
+  const note = document.getElementById('upm-note').value;
+  if (!amt || amt <= 0) return alert('Amount bharein!');
+  if (amt > _upmCurrentBalance) return alert(`Sirf ${rupee(_upmCurrentBalance)} baaki hai! Isse zyada nahi ho sakta.`);
+
+  if (!DB.udharPayments) DB.udharPayments = [];
+  DB.udharPayments.push({ id: uid(), type, name, amount: amt, date, note });
+  save();
+  closeModal('udhar-pay-modal');
+  showToast(`✅ ${rupee(amt)} record ho gaya! Naya balance: ${rupee(Math.max(_upmCurrentBalance - amt, 0))}`, 'green');
+  renderDashboard();
+}
 function saveProduct() {
   if (!currentUser || currentUser.role === 'admin') return alert('⛔ Admin sirf dekh sakta hai. Product add karne ke liye staff account se login karein.');
   const code = document.getElementById('p-code').value.trim();
@@ -1040,9 +1301,10 @@ function renderPuItemsList() {
     </div>`).join('');
   const subtotal = _puItems.reduce((a, it) => a + it.qty * it.cost, 0);
   document.getElementById('pu-items-subtotal').textContent = '₹' + subtotal.toLocaleString('en-IN');
+  if (document.getElementById('pu-payment').value === 'Partial') calcPuBalance();
 }
 
-function removePuItem(i) { _puItems.splice(i, 1); renderPuItemsList(); }
+function removePuItem(i) { _puItems.splice(i, 1); renderPuItemsList(); if (document.getElementById('pu-payment').value === 'Partial') calcPuBalance(); }
 
 // ── Product Search ──
 let _isNewProduct = false;  // kya user naya product add kar raha hai
@@ -1220,8 +1482,26 @@ function savePurchase() {
 
   if (!_puItems.length) return alert('Koi item nahi! Product, qty aur rate bharein.');
 
+  // Partial payment amount
+  let paidAmount = 0;
+  if (payment === 'Paid') paidAmount = _puItems.reduce((a, it) => a + it.qty * it.cost, 0);
+  else if (payment === 'Unpaid') paidAmount = 0;
+  else {
+    paidAmount = parseFloat(document.getElementById('pu-paid-amount').value) || 0;
+    const totalAmt = _puItems.reduce((a, it) => a + it.qty * it.cost, 0);
+    if (paidAmount <= 0) return alert('Partial payment mein kitna diya woh bharein!');
+    if (paidAmount >= totalAmt) return alert('Agar poora pay kiya hai to "Paid" select karein!');
+  }
+
+  const grandTotal = _puItems.reduce((a, it) => a + it.qty * it.cost, 0);
+
   _puItems.forEach(item => {
     let prod;
+    const itemTotal = item.qty * item.cost;
+    const itemShare = grandTotal > 0 ? itemTotal / grandTotal : 1;
+    const itemPaid = payment === 'Paid' ? itemTotal : (payment === 'Unpaid' ? 0 : Math.round(paidAmount * itemShare));
+    const itemBalance = Math.max(itemTotal - itemPaid, 0);
+
     if (item.isNew) {
       // ── Naya product create karo ──
       prod = {
@@ -1241,8 +1521,10 @@ function savePurchase() {
       id: uid(), date, supplier,
       productId: prod.id, productName: item.name,
       unit: prod.unit || 'piece',
-      qty: item.qty, cost: item.cost, total: item.qty * item.cost,
-      payment, note
+      qty: item.qty, cost: item.cost, total: itemTotal,
+      payment, note,
+      paidAmount: itemPaid,
+      balance: itemBalance
     });
   });
 
@@ -1282,14 +1564,20 @@ function renderPurchases() {
     : '';
 
   const tbody = document.getElementById('purchases-table');
-  if (!list.length) { tbody.innerHTML = `<tr><td colspan="5"><div class="empty"><div class="big">🛒</div><p>Koi purchase nahi mila</p></div></td></tr>`; return; }
-  tbody.innerHTML = list.map(p => `<tr>
+  if (!list.length) { tbody.innerHTML = `<tr><td colspan="7"><div class="empty"><div class="big">🛒</div><p>Koi purchase nahi mila</p></div></td></tr>`; return; }
+  tbody.innerHTML = list.map(p => {
+    const paid = p.paidAmount !== undefined ? p.paidAmount : (p.payment === 'Paid' ? p.total : 0);
+    const bal  = p.balance  !== undefined ? p.balance  : (p.payment === 'Unpaid' ? p.total : p.payment === 'Paid' ? 0 : 0);
+    return `<tr>
     <td>${p.date}</td>
     <td>${p.supplier || '—'}</td>
     <td>${p.productName} × ${p.qty}${p.unit === 'meter' ? ' mtr' : ''}</td>
     <td style="color:var(--accent)">${rupee(p.total)}</td>
+    <td style="color:var(--green)">${rupee(paid)}</td>
+    <td style="color:${bal > 0 ? 'var(--red)' : 'var(--text2)'};font-weight:${bal > 0 ? '700' : '400'}">${bal > 0 ? rupee(bal) : '—'}</td>
     <td><span class="badge ${p.payment === 'Paid' ? 'ok' : p.payment === 'Unpaid' ? 'low' : 'cloth'}">${p.payment}</span></td>
-  </tr>`).join('');
+  </tr>`;
+  }).join('');
 }
 
 // Quick filter helpers — Purchase
@@ -1344,6 +1632,8 @@ function calcSaleTotal() {
   document.getElementById('sa-total').textContent = rupee(Math.max(total, 0));
   const profit = prod ? total - (q * prod.purchasePrice) : 0;
   document.getElementById('sa-profit-preview').textContent = rupee(profit);
+  // Recalculate balance if partial is selected
+  if (document.getElementById('sa-payment').value === 'Partial') calcSaBalance();
   if (isMeter && q > 0) {
     const infoEl = document.getElementById('sa-meter-info');
     if (infoEl) infoEl.textContent = `📏 ${qtyDisplay} × ₹${price}/mtr = ₹${(q*price).toLocaleString('en-IN')}`;
@@ -1365,7 +1655,17 @@ function saveSale() {
   }
   const total = (qty * price) - disc;
   const profit = total - (qty * prod.purchasePrice);
-  DB.sales.push({ id: uid(), date: document.getElementById('sa-date').value, customer: document.getElementById('sa-customer').value || 'Walk-in', productId: prod.id, productName: prod.name, unit: prod.unit || 'piece', qty, price, discount: disc, total, profit, payment: document.getElementById('sa-payment').value });
+  const salePayment = document.getElementById('sa-payment').value;
+  let salePaid = 0, saleBalance = 0;
+  if (salePayment === 'Paid') { salePaid = total; saleBalance = 0; }
+  else if (salePayment === 'Unpaid') { salePaid = 0; saleBalance = total; }
+  else {
+    salePaid = parseFloat(document.getElementById('sa-paid-amount').value) || 0;
+    if (salePaid <= 0) return alert('Partial payment mein kitna liya woh bharein!');
+    if (salePaid >= total) return alert('Agar poora liya hai to "Paid" select karein!');
+    saleBalance = Math.max(total - salePaid, 0);
+  }
+  DB.sales.push({ id: uid(), date: document.getElementById('sa-date').value, customer: document.getElementById('sa-customer').value || 'Walk-in', productId: prod.id, productName: prod.name, unit: prod.unit || 'piece', qty, price, discount: disc, total, profit, payment: salePayment, paidAmount: salePaid, balance: saleBalance });
   prod.stock -= qty;
   save(); closeModal('sale-modal'); showAlert('sale-alert'); renderSales();
 }
@@ -1397,15 +1697,21 @@ function renderSales() {
     : '';
 
   const tbody = document.getElementById('sales-table');
-  if (!list.length) { tbody.innerHTML = `<tr><td colspan="6"><div class="empty"><div class="big">💰</div><p>Koi sale nahi mili</p></div></td></tr>`; return; }
-  tbody.innerHTML = list.map(s => `<tr>
+  if (!list.length) { tbody.innerHTML = `<tr><td colspan="8"><div class="empty"><div class="big">💰</div><p>Koi sale nahi mili</p></div></td></tr>`; return; }
+  tbody.innerHTML = list.map(s => {
+    const paid = s.paidAmount !== undefined ? s.paidAmount : (s.payment === 'Paid' ? s.total : 0);
+    const bal  = s.balance  !== undefined ? s.balance  : (s.payment === 'Unpaid' ? s.total : 0);
+    return `<tr>
     <td>${s.date}</td>
     <td>${s.customer || 'Walk-in'}</td>
     <td>${s.productName} × ${s.qty}${s.unit === 'meter' ? ' mtr' : (s.unit === 'pair' ? ' pair' : '')}</td>
     <td style="color:var(--green)">${rupee(s.total)}</td>
+    <td style="color:var(--green)">${rupee(paid)}</td>
+    <td style="color:${bal > 0 ? 'var(--red)' : 'var(--text2)'};font-weight:${bal > 0 ? '700' : '400'}">${bal > 0 ? rupee(bal) : '—'}</td>
     <td style="color:${s.profit >= 0 ? 'var(--blue)' : 'var(--red)'}">${rupee(s.profit)}</td>
     <td><span class="badge ${s.payment === 'Paid' ? 'ok' : s.payment === 'Unpaid' ? 'low' : 'cloth'}">${s.payment}</span></td>
-  </tr>`).join('');
+  </tr>`;
+  }).join('');
 }
 
 // Quick filter helpers — Sales
@@ -1584,6 +1890,92 @@ function renderDashboard() {
   const actEl = document.getElementById('today-activity');
   const acts = [...DB.sales.filter(s => s.date === today).map(s => ({ text: `💰 Sale: ${s.productName} × ${s.qty} — ${rupee(s.total)}`, color: 'var(--green)' })), ...DB.purchases.filter(p => p.date === today).map(p => ({ text: `🛒 Purchase: ${p.productName} × ${p.qty} — ${rupee(p.total)}`, color: 'var(--accent)' })), ...DB.expenses.filter(e => e.date === today).map(e => ({ text: `💸 Expense: ${e.cat} — ${rupee(e.amount)}`, color: 'var(--red)' }))];
   actEl.innerHTML = acts.length ? acts.map(a => `<div class="profit-row"><span style="color:${a.color}">${a.text}</span></div>`).join('') : '<div class="empty"><p>Aaj koi transaction nahi</p></div>';
+
+  // ====== UDHAR CALCULATIONS ======
+  if (!DB.udharPayments) DB.udharPayments = [];
+
+  // Purchase Udhar — supplier ko humara baaki dena hai
+  const puUdharMap = {};
+  DB.purchases.forEach(p => {
+    const rawBal = p.balance !== undefined ? p.balance : (p.payment === 'Unpaid' ? p.total : p.payment === 'Paid' ? 0 : 0);
+    const paid   = p.paidAmount !== undefined ? p.paidAmount : (p.payment === 'Paid' ? p.total : 0);
+    if (rawBal > 0 || p.payment === 'Unpaid' || p.payment === 'Partial') {
+      if (!puUdharMap[p.supplier]) puUdharMap[p.supplier] = { total: 0, paid: 0, rawBalance: 0 };
+      puUdharMap[p.supplier].total      += p.total;
+      puUdharMap[p.supplier].paid       += paid;
+      puUdharMap[p.supplier].rawBalance += rawBal;
+    }
+  });
+  // Subtract udharPayments for purchases
+  DB.udharPayments.filter(u => u.type === 'purchase').forEach(u => {
+    if (puUdharMap[u.name]) {
+      puUdharMap[u.name].paid       += u.amount;
+      puUdharMap[u.name].rawBalance  = Math.max(puUdharMap[u.name].rawBalance - u.amount, 0);
+    }
+  });
+  const puUdharList = Object.entries(puUdharMap).filter(([, v]) => v.rawBalance > 0).sort((a, b) => b[1].rawBalance - a[1].rawBalance);
+  const puTotal = puUdharList.reduce((a, [, v]) => a + v.rawBalance, 0);
+  document.getElementById('d-pu-udhar-total').textContent = rupee(puTotal);
+  document.getElementById('d-pu-udhar-sub').textContent = puUdharList.length > 0
+    ? puUdharList.length + ' supplier' + (puUdharList.length > 1 ? 's' : '') + ' ko dena baaki'
+    : 'Koi udhar nahi ✅';
+  const puListEl = document.getElementById('d-pu-udhar-list');
+  if (puUdharList.length === 0) {
+    puListEl.innerHTML = '<div class="empty" style="padding:20px"><p>Koi udhar nahi 🎉</p></div>';
+  } else {
+    puListEl.innerHTML = puUdharList.map(([name, v]) => `
+      <div class="udhar-row">
+        <span class="udhar-name">🏪 ${name}</span>
+        <div class="udhar-cols">
+          <span style="color:var(--text2)">${rupee(v.total)}</span>
+          <span style="color:var(--green)">${rupee(v.paid)}</span>
+          <span style="color:var(--red);font-weight:700">${rupee(v.rawBalance)}</span>
+        </div>
+        <button class="pay-btn staff-only" onclick="openUdharPayment('purchase','${name.replace(/'/g,"\\'")}',${v.rawBalance})">💳 Pay</button>
+      </div>`).join('');
+  }
+
+  // Sales Udhar — customer ka humse lena baaki
+  const saUdharMap = {};
+  DB.sales.forEach(s => {
+    const rawBal = s.balance !== undefined ? s.balance : (s.payment === 'Unpaid' ? s.total : s.payment === 'Paid' ? 0 : 0);
+    const paid   = s.paidAmount !== undefined ? s.paidAmount : (s.payment === 'Paid' ? s.total : 0);
+    if (rawBal > 0 || s.payment === 'Unpaid' || s.payment === 'Partial') {
+      const cname = s.customer || 'Walk-in';
+      if (!saUdharMap[cname]) saUdharMap[cname] = { total: 0, paid: 0, rawBalance: 0 };
+      saUdharMap[cname].total      += s.total;
+      saUdharMap[cname].paid       += paid;
+      saUdharMap[cname].rawBalance += rawBal;
+    }
+  });
+  // Subtract udharPayments for sales
+  DB.udharPayments.filter(u => u.type === 'sale').forEach(u => {
+    if (saUdharMap[u.name]) {
+      saUdharMap[u.name].paid       += u.amount;
+      saUdharMap[u.name].rawBalance  = Math.max(saUdharMap[u.name].rawBalance - u.amount, 0);
+    }
+  });
+  const saUdharList = Object.entries(saUdharMap).filter(([, v]) => v.rawBalance > 0).sort((a, b) => b[1].rawBalance - a[1].rawBalance);
+  const saTotal = saUdharList.reduce((a, [, v]) => a + v.rawBalance, 0);
+  document.getElementById('d-sa-udhar-total').textContent = rupee(saTotal);
+  document.getElementById('d-sa-udhar-sub').textContent = saUdharList.length > 0
+    ? saUdharList.length + ' customer' + (saUdharList.length > 1 ? 's' : '') + ' ne udhar kiya'
+    : 'Koi udhar nahi ✅';
+  const saListEl = document.getElementById('d-sa-udhar-list');
+  if (saUdharList.length === 0) {
+    saListEl.innerHTML = '<div class="empty" style="padding:20px"><p>Koi udhar nahi 🎉</p></div>';
+  } else {
+    saListEl.innerHTML = saUdharList.map(([name, v]) => `
+      <div class="udhar-row">
+        <span class="udhar-name">👤 ${name}</span>
+        <div class="udhar-cols">
+          <span style="color:var(--text2)">${rupee(v.total)}</span>
+          <span style="color:var(--green)">${rupee(v.paid)}</span>
+          <span style="color:var(--red);font-weight:700">${rupee(v.rawBalance)}</span>
+        </div>
+        <button class="pay-btn staff-only" onclick="openUdharPayment('sale','${name.replace(/'/g,"\\'")}',${v.rawBalance})">💳 Received</button>
+      </div>`).join('');
+  }
 }
 
 // ====== SETTINGS ======
