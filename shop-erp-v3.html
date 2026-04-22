@@ -69,6 +69,8 @@ tr:hover td { background: rgba(255,255,255,0.02); }
 .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
 .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
 .btn-danger { background: rgba(230,57,70,0.15); color: var(--red); border: 1px solid rgba(230,57,70,0.2); }
+.btn-edit { background: rgba(76,201,240,0.12); color: var(--blue); border: 1px solid rgba(76,201,240,0.25); }
+.btn-edit:hover { background: rgba(76,201,240,0.22); border-color: var(--blue); }
 .btn-sm { padding: 5px 12px; font-size: 12px; }
 .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 200; align-items: center; justify-content: center; }
 .overlay.show { display: flex; }
@@ -396,8 +398,8 @@ body.admin-mode .admin-banner { display: block; }
         </div>
       </div>
       <table>
-        <thead><tr><th>Code</th><th>Product</th><th>Category</th><th>Qty</th><th>Reorder Level</th><th>Status</th><th>Value</th></tr></thead>
-        <tbody id="stock-table"><tr><td colspan="7"><div class="empty"><p>Pehle products add karein</p></div></td></tr></tbody>
+        <thead><tr><th>Code</th><th>Product</th><th>Category</th><th>Qty</th><th>Reorder Level</th><th>Status</th><th>Value</th><th class="action-col">Stock Edit</th></tr></thead>
+        <tbody id="stock-table"><tr><td colspan="8"><div class="empty"><p>Pehle products add karein</p></div></td></tr></tbody>
       </table>
     </div>
   </div>
@@ -437,8 +439,8 @@ body.admin-mode .admin-banner { display: block; }
       </div>
       <div class="filter-summary" id="pu-filter-summary"></div>
       <table>
-        <thead><tr><th>Date</th><th>Supplier</th><th>Items</th><th>Total</th><th>Diya</th><th>Baaki</th><th>Payment</th></tr></thead>
-        <tbody id="purchases-table"><tr><td colspan="7"><div class="empty"><div class="big">🛒</div><p>Koi purchase nahi</p></div></td></tr></tbody>
+        <thead><tr><th>Date</th><th>Supplier</th><th>Items</th><th>Total</th><th>Diya</th><th>Baaki</th><th>Payment</th><th class="action-col">Action</th></tr></thead>
+        <tbody id="purchases-table"><tr><td colspan="8"><div class="empty"><div class="big">🛒</div><p>Koi purchase nahi</p></div></td></tr></tbody>
       </table>
     </div>
   </div>
@@ -478,8 +480,8 @@ body.admin-mode .admin-banner { display: block; }
       </div>
       <div class="filter-summary" id="sa-filter-summary"></div>
       <table>
-        <thead><tr><th>Date</th><th>Customer</th><th>Items</th><th>Total</th><th>Liya</th><th>Baaki</th><th>Profit</th><th>Payment</th></tr></thead>
-        <tbody id="sales-table"><tr><td colspan="8"><div class="empty"><div class="big">💰</div><p>Koi sale nahi</p></div></td></tr></tbody>
+        <thead><tr><th>Date</th><th>Customer</th><th>Items</th><th>Total</th><th>Liya</th><th>Baaki</th><th>Profit</th><th>Payment</th><th class="action-col">Action</th></tr></thead>
+        <tbody id="sales-table"><tr><td colspan="9"><div class="empty"><div class="big">💰</div><p>Koi sale nahi</p></div></td></tr></tbody>
       </table>
     </div>
   </div>
@@ -500,8 +502,8 @@ body.admin-mode .admin-banner { display: block; }
     <div class="card">
       <div class="card-header"><span class="card-title" id="expense-count">Expenses (0)</span></div>
       <table>
-        <thead><tr><th>Date</th><th>Category</th><th>Description</th><th>Amount</th></tr></thead>
-        <tbody id="expenses-table"><tr><td colspan="4"><div class="empty"><div class="big">💸</div><p>Koi expense nahi</p></div></td></tr></tbody>
+        <thead><tr><th>Date</th><th>Category</th><th>Description</th><th>Amount</th><th class="action-col">Action</th></tr></thead>
+        <tbody id="expenses-table"><tr><td colspan="5"><div class="empty"><div class="big">💸</div><p>Koi expense nahi</p></div></td></tr></tbody>
       </table>
     </div>
   </div>
@@ -855,6 +857,122 @@ body.admin-mode .admin-banner { display: block; }
     <div class="modal-actions" style="margin-top:20px">
       <button class="btn btn-secondary" onclick="closeModal('udhar-pay-modal')">Cancel</button>
       <button class="btn btn-primary" onclick="saveUdharPayment()">✅ Payment Save Karein</button>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT SALE MODAL -->
+<div class="overlay" id="edit-sale-modal">
+  <div class="modal" style="width:500px;max-width:96vw">
+    <h2>✏️ Sale Edit Karein</h2>
+    <input type="hidden" id="es-id">
+    <div class="form-grid">
+      <div class="form-group"><label>Date *</label><input type="date" id="es-date"></div>
+      <div class="form-group"><label>Customer</label><input type="text" id="es-customer" placeholder="Walk-in"></div>
+      <div class="form-group full"><label>Product (change nahi ho sakta)</label><input type="text" id="es-product-name" readonly style="opacity:0.6;cursor:not-allowed"><input type="hidden" id="es-product-id"></div>
+      <div class="form-group"><label>Quantity *</label><input type="number" id="es-qty" min="0.25" step="0.25" oninput="calcEsTotal()"></div>
+      <div class="form-group"><label>Sale Price (₹) *</label><input type="number" id="es-price" oninput="calcEsTotal()"></div>
+      <div class="form-group"><label>Discount (₹)</label><input type="number" id="es-discount" placeholder="0" oninput="calcEsTotal()"></div>
+      <div class="form-group"><label>Total</label><div id="es-total" style="padding:10px 14px;background:rgba(82,183,136,0.1);border-radius:9px;color:var(--green);font-weight:700;font-family:var(--font-head);font-size:18px">₹0</div></div>
+      <div class="form-group"><label>Payment Status</label><select id="es-payment" onchange="toggleEsPartial()"><option>Paid</option><option>Unpaid</option><option>Partial</option></select></div>
+      <div class="partial-box" id="es-partial-box">
+        <div class="partial-box-title">💳 Partial Payment</div>
+        <div class="partial-grid">
+          <div class="form-group"><label>Kitna Liya (₹)</label><input type="number" id="es-paid-amount" placeholder="0" oninput="calcEsBalance()"></div>
+          <div class="form-group"><label>Total</label><div class="partial-total-display" id="es-partial-total-display">₹0</div></div>
+          <div class="form-group"><label>Baaki</label><div class="balance-display" id="es-balance-display">₹0</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal('edit-sale-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveEditSale()">✅ Update Sale</button>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT PURCHASE MODAL -->
+<div class="overlay" id="edit-purchase-modal">
+  <div class="modal" style="width:500px;max-width:96vw">
+    <h2>✏️ Purchase Edit Karein</h2>
+    <input type="hidden" id="ep-id">
+    <div class="form-grid">
+      <div class="form-group"><label>Date *</label><input type="date" id="ep-date"></div>
+      <div class="form-group"><label>Supplier</label><input type="text" id="ep-supplier" placeholder="Supplier naam"></div>
+      <div class="form-group full"><label>Product (change nahi ho sakta)</label><input type="text" id="ep-product-name" readonly style="opacity:0.6;cursor:not-allowed"><input type="hidden" id="ep-product-id"></div>
+      <div class="form-group"><label>Quantity *</label><input type="number" id="ep-qty" min="0.01" step="0.01" oninput="calcEpTotal()"></div>
+      <div class="form-group"><label>Purchase Rate (₹) *</label><input type="number" id="ep-cost" oninput="calcEpTotal()"></div>
+      <div class="form-group"><label>Total</label><div id="ep-total" style="padding:10px 14px;background:rgba(244,162,97,0.1);border-radius:9px;color:var(--accent);font-weight:700;font-family:var(--font-head);font-size:18px">₹0</div></div>
+      <div class="form-group"><label>Payment Status</label><select id="ep-payment" onchange="toggleEpPartial()"><option>Paid</option><option>Unpaid</option><option>Partial</option></select></div>
+      <div class="form-group"><label>Note</label><input type="text" id="ep-note" placeholder="Optional note..."></div>
+      <div class="partial-box" id="ep-partial-box">
+        <div class="partial-box-title">💵 Partial Payment</div>
+        <div class="partial-grid">
+          <div class="form-group"><label>Kitna Diya (₹)</label><input type="number" id="ep-paid-amount" placeholder="0" oninput="calcEpBalance()"></div>
+          <div class="form-group"><label>Total</label><div class="partial-total-display" id="ep-partial-total-display">₹0</div></div>
+          <div class="form-group"><label>Baaki</label><div class="balance-display" id="ep-balance-display">₹0</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal('edit-purchase-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveEditPurchase()">✅ Update Purchase</button>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT EXPENSE MODAL -->
+<div class="overlay" id="edit-expense-modal">
+  <div class="modal" style="width:420px;max-width:96vw">
+    <h2>✏️ Expense Edit Karein</h2>
+    <input type="hidden" id="ee-id">
+    <div class="form-grid">
+      <div class="form-group"><label>Date *</label><input type="date" id="ee-date"></div>
+      <div class="form-group"><label>Category *</label>
+        <select id="ee-cat"><option>Rent</option><option>Bijli / Electricity</option><option>Transport</option><option>Repair</option><option>Advertisement</option><option>Other</option></select>
+      </div>
+      <div class="form-group full"><label>Description</label><input type="text" id="ee-desc" placeholder="Kharche ka description"></div>
+      <div class="form-group"><label>Amount (₹) *</label><input type="number" id="ee-amount" placeholder="0"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal('edit-expense-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveEditExpense()">✅ Update Expense</button>
+    </div>
+  </div>
+</div>
+
+<!-- CUSTOM CONFIRM MODAL -->
+<div class="overlay" id="confirm-modal" style="z-index:9999">
+  <div class="modal" style="width:380px;max-width:92vw;text-align:center">
+    <div id="confirm-icon" style="font-size:48px;margin-bottom:12px">🗑️</div>
+    <h2 id="confirm-title" style="font-size:18px;margin-bottom:8px">Delete karein?</h2>
+    <p id="confirm-msg" style="color:var(--text2);font-size:14px;margin-bottom:24px;line-height:1.5"></p>
+    <div style="display:flex;gap:12px;justify-content:center">
+      <button class="btn btn-secondary" style="flex:1;padding:12px" onclick="closeConfirm()">❌ Cancel</button>
+      <button class="btn btn-danger" style="flex:1;padding:12px;font-size:14px" id="confirm-ok-btn" onclick="runConfirmAction()">🗑 Haan, Delete Karein</button>
+    </div>
+  </div>
+</div>
+
+<!-- STOCK ADJUST MODAL -->
+<div class="overlay" id="stock-adjust-modal">
+  <div class="modal" style="width:400px;max-width:96vw">
+    <h2>⚙️ Stock Adjust Karein</h2>
+    <div style="background:rgba(76,201,240,0.08);border:1px solid rgba(76,201,240,0.2);border-radius:10px;padding:14px;margin-bottom:18px">
+      <div style="font-size:13px;color:var(--text2);margin-bottom:4px">Product</div>
+      <div id="sa-adj-product-name" style="font-weight:700;color:var(--blue);font-size:15px"></div>
+      <div style="margin-top:8px;font-size:13px;color:var(--text2)">Current Stock: <strong id="sa-adj-current" style="color:var(--accent)">0</strong></div>
+    </div>
+    <div class="form-grid">
+      <div class="form-group full"><label>Naya Stock Quantity *</label><input type="number" id="sa-adj-new" min="0" placeholder="0"></div>
+      <div class="form-group full"><label>Reason (optional)</label><input type="text" id="sa-adj-reason" placeholder="e.g. Manual count, Damage, Return..."></div>
+    </div>
+    <div style="background:rgba(230,57,70,0.07);border:1px solid rgba(230,57,70,0.2);border-radius:9px;padding:10px 14px;font-size:12px;color:var(--red);margin-top:8px">
+      ⚠️ Yeh directly stock set karega. Purchase/Sale record update nahi hoga.
+    </div>
+    <div class="modal-actions" style="margin-top:16px">
+      <button class="btn btn-secondary" onclick="closeModal('stock-adjust-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveStockAdjust()">✅ Stock Update Karein</button>
     </div>
   </div>
 </div>
@@ -1268,7 +1386,6 @@ function renderProducts(filter = '') {
   if (!list.length) { tbody.innerHTML = `<tr><td colspan="8"><div class="empty"><div class="big">👗</div><p>Koi product nahi</p></div></td></tr>`; return; }
   tbody.innerHTML = list.map(p => `<tr><td><code style="color:var(--accent);font-size:12px">${p.code}</code></td><td><strong>${p.name}</strong></td><td><span class="badge ${p.cat === 'Cloth' ? 'cloth' : 'shoes'}">${p.cat}</span></td><td>${p.size || '—'}</td><td style="color:var(--green)">${rupee(p.salePrice)}</td><td style="color:var(--text2)">${rupee(p.purchasePrice)}</td><td><span class="badge ${p.stock <= p.reorder ? 'low' : 'ok'}">${p.stock} ${p.unit}</span></td><td class="action-col">${currentUser && currentUser.role !== 'admin' ? `<button class="btn btn-danger btn-sm" onclick="deleteProduct('${p.id}')">🗑</button>` : '—'}</td></tr>`).join('');
 }
-function deleteProduct(id) { if (!currentUser || currentUser.role === 'admin') return; if (!confirm('Delete karein?')) return; DB.products = DB.products.filter(p => p.id !== id); save(); renderProducts(); }
 function filterProducts(v) { renderProducts(v); }
 
 // ====== STOCK ======
@@ -1279,8 +1396,13 @@ function renderStock() {
   document.getElementById('s-low').textContent = prods.filter(p => p.stock <= p.reorder).length;
   document.getElementById('s-val').textContent = rupee(prods.reduce((a, p) => a + p.stock * p.purchasePrice, 0));
   const tbody = document.getElementById('stock-table');
-  if (!prods.length) { tbody.innerHTML = `<tr><td colspan="7"><div class="empty"><p>${_activeStockCatFilter === 'all' ? 'Pehle products add karein' : _activeStockCatFilter + ' ka koi product nahi'}</p></div></td></tr>`; return; }
-  tbody.innerHTML = prods.map(p => `<tr><td><code style="color:var(--accent);font-size:12px">${p.code}</code></td><td>${p.name}</td><td><span class="badge ${p.cat === 'Cloth' ? 'cloth' : 'shoes'}">${p.cat}</span></td><td><strong style="font-size:16px">${p.stock}</strong> ${p.unit}</td><td>${p.reorder}</td><td><span class="badge ${p.stock <= p.reorder ? 'low' : 'ok'}">${p.stock <= p.reorder ? '⚠ Low' : '✓ OK'}</span></td><td style="color:var(--accent)">${rupee(p.stock * p.purchasePrice)}</td></tr>`).join('');
+  if (!prods.length) { tbody.innerHTML = `<tr><td colspan="8"><div class="empty"><p>${_activeStockCatFilter === 'all' ? 'Pehle products add karein' : _activeStockCatFilter + ' ka koi product nahi'}</p></div></td></tr>`; return; }
+  tbody.innerHTML = prods.map(p => {
+    const adjBtn = currentUser && currentUser.role !== 'admin'
+      ? `<button class="btn btn-edit btn-sm" onclick="openStockAdjust('${p.id}')">⚙️ Adjust</button>`
+      : '—';
+    return `<tr><td><code style="color:var(--accent);font-size:12px">${p.code}</code></td><td>${p.name}</td><td><span class="badge ${p.cat === 'Cloth' ? 'cloth' : 'shoes'}">${p.cat}</span></td><td><strong style="font-size:16px">${p.stock}</strong> ${p.unit}</td><td>${p.reorder}</td><td><span class="badge ${p.stock <= p.reorder ? 'low' : 'ok'}">${p.stock <= p.reorder ? '⚠ Low' : '✓ OK'}</span></td><td style="color:var(--accent)">${rupee(p.stock * p.purchasePrice)}</td><td class="action-col">${adjBtn}</td></tr>`;
+  }).join('');
 }
 
 // ====== PURCHASES ======
@@ -1564,10 +1686,13 @@ function renderPurchases() {
     : '';
 
   const tbody = document.getElementById('purchases-table');
-  if (!list.length) { tbody.innerHTML = `<tr><td colspan="7"><div class="empty"><div class="big">🛒</div><p>Koi purchase nahi mila</p></div></td></tr>`; return; }
+  if (!list.length) { tbody.innerHTML = `<tr><td colspan="8"><div class="empty"><div class="big">🛒</div><p>Koi purchase nahi mila</p></div></td></tr>`; return; }
   tbody.innerHTML = list.map(p => {
     const paid = p.paidAmount !== undefined ? p.paidAmount : (p.payment === 'Paid' ? p.total : 0);
     const bal  = p.balance  !== undefined ? p.balance  : (p.payment === 'Unpaid' ? p.total : p.payment === 'Paid' ? 0 : 0);
+    const actionBtns = currentUser && currentUser.role !== 'admin'
+      ? `<div style="display:flex;gap:6px;"><button class="btn btn-edit btn-sm" onclick="openEditPurchase('${p.id}')">✏️ Edit</button><button class="btn btn-danger btn-sm" onclick="deletePurchase('${p.id}')">🗑</button></div>`
+      : '—';
     return `<tr>
     <td>${p.date}</td>
     <td>${p.supplier || '—'}</td>
@@ -1576,6 +1701,7 @@ function renderPurchases() {
     <td style="color:var(--green)">${rupee(paid)}</td>
     <td style="color:${bal > 0 ? 'var(--red)' : 'var(--text2)'};font-weight:${bal > 0 ? '700' : '400'}">${bal > 0 ? rupee(bal) : '—'}</td>
     <td><span class="badge ${p.payment === 'Paid' ? 'ok' : p.payment === 'Unpaid' ? 'low' : 'cloth'}">${p.payment}</span></td>
+    <td class="action-col">${actionBtns}</td>
   </tr>`;
   }).join('');
 }
@@ -1697,10 +1823,13 @@ function renderSales() {
     : '';
 
   const tbody = document.getElementById('sales-table');
-  if (!list.length) { tbody.innerHTML = `<tr><td colspan="8"><div class="empty"><div class="big">💰</div><p>Koi sale nahi mili</p></div></td></tr>`; return; }
+  if (!list.length) { tbody.innerHTML = `<tr><td colspan="9"><div class="empty"><div class="big">💰</div><p>Koi sale nahi mili</p></div></td></tr>`; return; }
   tbody.innerHTML = list.map(s => {
     const paid = s.paidAmount !== undefined ? s.paidAmount : (s.payment === 'Paid' ? s.total : 0);
     const bal  = s.balance  !== undefined ? s.balance  : (s.payment === 'Unpaid' ? s.total : 0);
+    const actionBtns = currentUser && currentUser.role !== 'admin'
+      ? `<div style="display:flex;gap:6px;"><button class="btn btn-edit btn-sm" onclick="openEditSale('${s.id}')">✏️ Edit</button><button class="btn btn-danger btn-sm" onclick="deleteSale('${s.id}')">🗑</button></div>`
+      : '—';
     return `<tr>
     <td>${s.date}</td>
     <td>${s.customer || 'Walk-in'}</td>
@@ -1710,6 +1839,7 @@ function renderSales() {
     <td style="color:${bal > 0 ? 'var(--red)' : 'var(--text2)'};font-weight:${bal > 0 ? '700' : '400'}">${bal > 0 ? rupee(bal) : '—'}</td>
     <td style="color:${s.profit >= 0 ? 'var(--blue)' : 'var(--red)'}">${rupee(s.profit)}</td>
     <td><span class="badge ${s.payment === 'Paid' ? 'ok' : s.payment === 'Unpaid' ? 'low' : 'cloth'}">${s.payment}</span></td>
+    <td class="action-col">${actionBtns}</td>
   </tr>`;
   }).join('');
 }
@@ -1750,8 +1880,13 @@ function renderExpenses() {
   document.getElementById('e-year').textContent = rupee(DB.expenses.filter(e => e.date.startsWith(year)).reduce((a, e) => a + e.amount, 0));
   document.getElementById('e-total').textContent = rupee(DB.expenses.reduce((a, e) => a + e.amount, 0));
   const tbody = document.getElementById('expenses-table');
-  if (!list.length) { tbody.innerHTML = `<tr><td colspan="4"><div class="empty"><div class="big">💸</div><p>Koi expense nahi</p></div></td></tr>`; return; }
-  tbody.innerHTML = list.map(e => `<tr><td>${e.date}</td><td>${e.cat}</td><td>${e.desc || '—'}</td><td style="color:var(--red)">${rupee(e.amount)}</td></tr>`).join('');
+  if (!list.length) { tbody.innerHTML = `<tr><td colspan="5"><div class="empty"><div class="big">💸</div><p>Koi expense nahi</p></div></td></tr>`; return; }
+  tbody.innerHTML = list.map(e => {
+    const actionBtns = currentUser && currentUser.role !== 'admin'
+      ? `<div style="display:flex;gap:6px;"><button class="btn btn-edit btn-sm" onclick="openEditExpense('${e.id}')">✏️ Edit</button><button class="btn btn-danger btn-sm" onclick="deleteExpense('${e.id}')">🗑</button></div>`
+      : '—';
+    return `<tr><td>${e.date}</td><td>${e.cat}</td><td>${e.desc || '—'}</td><td style="color:var(--red)">${rupee(e.amount)}</td><td class="action-col">${actionBtns}</td></tr>`;
+  }).join('');
 }
 
 // ====== STAFF ======
@@ -2023,10 +2158,11 @@ async function addNewUser() {
 }
 
 async function deleteUser(id) {
-  if (!confirm('Delete karein?')) return;
-  const users = (await getUsers()).filter(u => u.id !== id);
-  await saveUsers(users);
-  renderSettings();
+  showConfirm('👤', 'User Delete Karein?', `User "${id}" ko permanently delete karein?`, '🗑 Haan, Delete Karein', async () => {
+    const users = (await getUsers()).filter(u => u.id !== id);
+    await saveUsers(users);
+    renderSettings();
+  });
 }
 
 async function changeOwnPassword() {
@@ -2042,6 +2178,366 @@ async function changeOwnPassword() {
   currentUser.pass = np;
   await saveUsers(users);
   alert('✅ Password change ho gaya! Ab sabhi phones par naya password kaam karega.');
+}
+
+// ====== EDIT SALE ======
+let _editSaleOldQty = 0;
+let _editSaleOldProductId = '';
+
+function openEditSale(id) {
+  if (!currentUser || currentUser.role === 'admin') return alert('⛔ Admin sirf dekh sakta hai.');
+  const s = DB.sales.find(x => x.id === id);
+  if (!s) return;
+  _editSaleOldQty = s.qty;
+  _editSaleOldProductId = s.productId;
+  document.getElementById('es-id').value = s.id;
+  document.getElementById('es-date').value = s.date;
+  document.getElementById('es-customer').value = s.customer || '';
+  document.getElementById('es-product-name').value = s.productName;
+  document.getElementById('es-product-id').value = s.productId;
+  document.getElementById('es-qty').value = s.qty;
+  document.getElementById('es-price').value = s.price;
+  document.getElementById('es-discount').value = s.discount || 0;
+  document.getElementById('es-payment').value = s.payment;
+  calcEsTotal();
+  const partialBox = document.getElementById('es-partial-box');
+  if (s.payment === 'Partial') {
+    partialBox.classList.add('show');
+    document.getElementById('es-paid-amount').value = s.paidAmount || '';
+    calcEsBalance();
+  } else {
+    partialBox.classList.remove('show');
+  }
+  openModal('edit-sale-modal');
+}
+
+function calcEsTotal() {
+  const qty = parseFloat(document.getElementById('es-qty').value) || 0;
+  const price = parseFloat(document.getElementById('es-price').value) || 0;
+  const disc = parseFloat(document.getElementById('es-discount').value) || 0;
+  const total = Math.max((qty * price) - disc, 0);
+  document.getElementById('es-total').textContent = rupee(total);
+  if (document.getElementById('es-payment').value === 'Partial') calcEsBalance();
+}
+
+function toggleEsPartial() {
+  const payment = document.getElementById('es-payment').value;
+  const box = document.getElementById('es-partial-box');
+  if (payment === 'Partial') { box.classList.add('show'); calcEsBalance(); }
+  else box.classList.remove('show');
+}
+
+function calcEsBalance() {
+  const totalTxt = document.getElementById('es-total').textContent.replace(/[₹,]/g, '').trim();
+  const total = parseFloat(totalTxt) || 0;
+  const paid = parseFloat(document.getElementById('es-paid-amount').value) || 0;
+  const bal = Math.max(total - paid, 0);
+  document.getElementById('es-partial-total-display').textContent = rupee(total);
+  const el = document.getElementById('es-balance-display');
+  el.textContent = rupee(bal);
+  el.className = 'balance-display' + (bal === 0 ? ' zero' : '');
+}
+
+function saveEditSale() {
+  if (!currentUser || currentUser.role === 'admin') return;
+  const id = document.getElementById('es-id').value;
+  const idx = DB.sales.findIndex(x => x.id === id);
+  if (idx === -1) return alert('Sale nahi mili!');
+  const date = document.getElementById('es-date').value;
+  const customer = document.getElementById('es-customer').value.trim() || 'Walk-in';
+  const productId = document.getElementById('es-product-id').value;
+  const qty = parseFloat(document.getElementById('es-qty').value);
+  const price = parseFloat(document.getElementById('es-price').value);
+  const disc = parseFloat(document.getElementById('es-discount').value) || 0;
+  const payment = document.getElementById('es-payment').value;
+  if (!date || !qty || !price) return alert('Date, quantity aur price bharein!');
+  const total = Math.max((qty * price) - disc, 0);
+  const prod = DB.products.find(p => p.id === productId);
+  // Stock adjustment — pehli qty wapas karo, nai minus karo
+  if (prod) {
+    prod.stock += _editSaleOldQty;
+    if (prod.stock < qty) {
+      prod.stock -= _editSaleOldQty;
+      return alert(`Stock kam hai! Available: ${prod.stock + _editSaleOldQty - (prod.stock)}`);
+    }
+    prod.stock -= qty;
+  }
+  const profit = prod ? total - (qty * prod.purchasePrice) : DB.sales[idx].profit;
+  let salePaid = 0, saleBalance = 0;
+  if (payment === 'Paid') { salePaid = total; saleBalance = 0; }
+  else if (payment === 'Unpaid') { salePaid = 0; saleBalance = total; }
+  else {
+    salePaid = parseFloat(document.getElementById('es-paid-amount').value) || 0;
+    if (salePaid <= 0) return alert('Partial mein kitna liya woh bharein!');
+    if (salePaid >= total) return alert('Poora liya hai to "Paid" select karein!');
+    saleBalance = Math.max(total - salePaid, 0);
+  }
+  DB.sales[idx] = { ...DB.sales[idx], date, customer, qty, price, discount: disc, total, profit, payment, paidAmount: salePaid, balance: saleBalance };
+  save();
+  closeModal('edit-sale-modal');
+  showToast('✅ Sale update ho gaya!', 'green');
+  renderSales(); renderStock(); renderDashboard();
+}
+
+
+
+// ====== EDIT PURCHASE ======
+let _editPuOldQty = 0;
+
+function openEditPurchase(id) {
+  if (!currentUser || currentUser.role === 'admin') return alert('⛔ Admin sirf dekh sakta hai.');
+  const p = DB.purchases.find(x => x.id === id);
+  if (!p) return;
+  _editPuOldQty = p.qty;
+  document.getElementById('ep-id').value = p.id;
+  document.getElementById('ep-date').value = p.date;
+  document.getElementById('ep-supplier').value = p.supplier || '';
+  document.getElementById('ep-product-name').value = p.productName;
+  document.getElementById('ep-product-id').value = p.productId;
+  document.getElementById('ep-qty').value = p.qty;
+  document.getElementById('ep-cost').value = p.cost;
+  document.getElementById('ep-note').value = p.note || '';
+  document.getElementById('ep-payment').value = p.payment;
+  calcEpTotal();
+  const partialBox = document.getElementById('ep-partial-box');
+  if (p.payment === 'Partial') {
+    partialBox.classList.add('show');
+    document.getElementById('ep-paid-amount').value = p.paidAmount || '';
+    calcEpBalance();
+  } else {
+    partialBox.classList.remove('show');
+  }
+  openModal('edit-purchase-modal');
+}
+
+function calcEpTotal() {
+  const qty = parseFloat(document.getElementById('ep-qty').value) || 0;
+  const cost = parseFloat(document.getElementById('ep-cost').value) || 0;
+  document.getElementById('ep-total').textContent = rupee(qty * cost);
+  if (document.getElementById('ep-payment').value === 'Partial') calcEpBalance();
+}
+
+function toggleEpPartial() {
+  const payment = document.getElementById('ep-payment').value;
+  const box = document.getElementById('ep-partial-box');
+  if (payment === 'Partial') { box.classList.add('show'); calcEpBalance(); }
+  else box.classList.remove('show');
+}
+
+function calcEpBalance() {
+  const qty = parseFloat(document.getElementById('ep-qty').value) || 0;
+  const cost = parseFloat(document.getElementById('ep-cost').value) || 0;
+  const total = qty * cost;
+  const paid = parseFloat(document.getElementById('ep-paid-amount').value) || 0;
+  const bal = Math.max(total - paid, 0);
+  document.getElementById('ep-partial-total-display').textContent = rupee(total);
+  const el = document.getElementById('ep-balance-display');
+  el.textContent = rupee(bal);
+  el.className = 'balance-display' + (bal === 0 ? ' zero' : '');
+}
+
+function saveEditPurchase() {
+  if (!currentUser || currentUser.role === 'admin') return;
+  const id = document.getElementById('ep-id').value;
+  const idx = DB.purchases.findIndex(x => x.id === id);
+  if (idx === -1) return alert('Purchase nahi mila!');
+  const date = document.getElementById('ep-date').value;
+  const supplier = document.getElementById('ep-supplier').value.trim() || 'Unknown';
+  const productId = document.getElementById('ep-product-id').value;
+  const qty = parseFloat(document.getElementById('ep-qty').value);
+  const cost = parseFloat(document.getElementById('ep-cost').value);
+  const note = document.getElementById('ep-note').value;
+  const payment = document.getElementById('ep-payment').value;
+  if (!date || !qty || !cost) return alert('Date, quantity aur cost bharein!');
+  const total = qty * cost;
+  // Stock adjustment
+  const prod = DB.products.find(p => p.id === productId);
+  if (prod) {
+    prod.stock -= _editPuOldQty;
+    prod.stock += qty;
+    if (prod.stock < 0) {
+      prod.stock += _editPuOldQty; prod.stock -= qty;
+      return alert('Stock negative nahi ho sakta! Quantity check karein.');
+    }
+    prod.purchasePrice = cost;
+  }
+  let paidAmount = 0, balance = 0;
+  if (payment === 'Paid') { paidAmount = total; balance = 0; }
+  else if (payment === 'Unpaid') { paidAmount = 0; balance = total; }
+  else {
+    paidAmount = parseFloat(document.getElementById('ep-paid-amount').value) || 0;
+    if (paidAmount <= 0) return alert('Partial mein kitna diya woh bharein!');
+    if (paidAmount >= total) return alert('Poora diya hai to "Paid" select karein!');
+    balance = Math.max(total - paidAmount, 0);
+  }
+  DB.purchases[idx] = { ...DB.purchases[idx], date, supplier, qty, cost, total, payment, note, paidAmount, balance };
+  save();
+  closeModal('edit-purchase-modal');
+  showToast('✅ Purchase update ho gaya!', 'green');
+  renderPurchases(); renderStock(); renderDashboard();
+}
+
+
+
+// ====== EDIT EXPENSE ======
+function openEditExpense(id) {
+  if (!currentUser || currentUser.role === 'admin') return alert('⛔ Admin sirf dekh sakta hai.');
+  const e = DB.expenses.find(x => x.id === id);
+  if (!e) return;
+  document.getElementById('ee-id').value = e.id;
+  document.getElementById('ee-date').value = e.date;
+  document.getElementById('ee-cat').value = e.cat;
+  document.getElementById('ee-desc').value = e.desc || '';
+  document.getElementById('ee-amount').value = e.amount;
+  openModal('edit-expense-modal');
+}
+
+function saveEditExpense() {
+  if (!currentUser || currentUser.role === 'admin') return;
+  const id = document.getElementById('ee-id').value;
+  const idx = DB.expenses.findIndex(x => x.id === id);
+  if (idx === -1) return alert('Expense nahi mila!');
+  const amount = parseFloat(document.getElementById('ee-amount').value);
+  if (!amount) return alert('Amount bharein!');
+  DB.expenses[idx] = {
+    ...DB.expenses[idx],
+    date: document.getElementById('ee-date').value,
+    cat: document.getElementById('ee-cat').value,
+    desc: document.getElementById('ee-desc').value,
+    amount
+  };
+  save();
+  closeModal('edit-expense-modal');
+  showToast('✅ Expense update ho gaya!', 'green');
+  renderExpenses();
+}
+
+
+
+// ====== STOCK ADJUST ======
+let _stockAdjId = '';
+function openStockAdjust(productId) {
+  if (!currentUser || currentUser.role === 'admin') return alert('⛔ Admin sirf dekh sakta hai.');
+  const prod = DB.products.find(p => p.id === productId);
+  if (!prod) return;
+  _stockAdjId = productId;
+  document.getElementById('sa-adj-product-name').textContent = prod.name + ' (' + prod.code + ')';
+  document.getElementById('sa-adj-current').textContent = prod.stock + ' ' + (prod.unit || 'piece');
+  document.getElementById('sa-adj-new').value = prod.stock;
+  document.getElementById('sa-adj-reason').value = '';
+  openModal('stock-adjust-modal');
+}
+
+function saveStockAdjust() {
+  if (!currentUser || currentUser.role === 'admin') return;
+  const prod = DB.products.find(p => p.id === _stockAdjId);
+  if (!prod) return;
+  const newStock = parseFloat(document.getElementById('sa-adj-new').value);
+  if (isNaN(newStock) || newStock < 0) return alert('Valid stock quantity bharein!');
+  prod.stock = newStock;
+  save();
+  closeModal('stock-adjust-modal');
+  showToast('✅ Stock update ho gaya: ' + prod.name + ' → ' + newStock + ' ' + (prod.unit || 'piece'), 'green');
+  renderStock(); renderProducts(); renderDashboard();
+}
+
+// ====== CUSTOM CONFIRM DIALOG ======
+let _confirmAction = null;
+
+function showConfirm(icon, title, msg, okLabel, action) {
+  document.getElementById('confirm-icon').textContent = icon;
+  document.getElementById('confirm-title').textContent = title;
+  document.getElementById('confirm-msg').textContent = msg;
+  document.getElementById('confirm-ok-btn').textContent = okLabel;
+  _confirmAction = action;
+  document.getElementById('confirm-modal').classList.add('show');
+}
+
+function closeConfirm() {
+  document.getElementById('confirm-modal').classList.remove('show');
+  _confirmAction = null;
+}
+
+function runConfirmAction() {
+  const action = _confirmAction;
+  closeConfirm();
+  if (action) action();
+}
+
+function deleteSale(id) {
+  if (!currentUser || currentUser.role === 'admin') return;
+  const s = DB.sales.find(x => x.id === id);
+  if (!s) return;
+  showConfirm(
+    '🗑️',
+    'Sale Delete Karein?',
+    `"${s.productName} × ${s.qty}" — ${rupee(s.total)} (Customer: ${s.customer || 'Walk-in'})\n\nDelete karne par product ka stock wapas aa jayega.`,
+    '🗑 Haan, Delete Karein',
+    () => {
+      const prod = DB.products.find(p => p.id === s.productId);
+      if (prod) prod.stock += s.qty;
+      DB.sales = DB.sales.filter(x => x.id !== id);
+      save();
+      showToast('🗑 Sale delete ho gaya', 'orange');
+      renderSales(); renderStock(); renderDashboard();
+    }
+  );
+}
+
+function deletePurchase(id) {
+  if (!currentUser || currentUser.role === 'admin') return;
+  const p = DB.purchases.find(x => x.id === id);
+  if (!p) return;
+  showConfirm(
+    '🗑️',
+    'Purchase Delete Karein?',
+    `"${p.productName} × ${p.qty}" — ${rupee(p.total)} (Supplier: ${p.supplier || 'Unknown'})\n\nDelete karne par stock bhi kam ho jayega.`,
+    '🗑 Haan, Delete Karein',
+    () => {
+      const prod = DB.products.find(pr => pr.id === p.productId);
+      if (prod) prod.stock -= p.qty;
+      DB.purchases = DB.purchases.filter(x => x.id !== id);
+      save();
+      showToast('🗑 Purchase delete ho gaya', 'orange');
+      renderPurchases(); renderStock(); renderDashboard();
+    }
+  );
+}
+
+function deleteExpense(id) {
+  if (!currentUser || currentUser.role === 'admin') return;
+  const e = DB.expenses.find(x => x.id === id);
+  if (!e) return;
+  showConfirm(
+    '💸',
+    'Expense Delete Karein?',
+    `"${e.cat} — ${e.desc || 'No description'}" — ${rupee(e.amount)}\n\nKya aap sure hain?`,
+    '🗑 Haan, Delete Karein',
+    () => {
+      DB.expenses = DB.expenses.filter(x => x.id !== id);
+      save();
+      showToast('🗑 Expense delete ho gaya', 'orange');
+      renderExpenses();
+    }
+  );
+}
+
+function deleteProduct(id) {
+  if (!currentUser || currentUser.role === 'admin') return;
+  const p = DB.products.find(x => x.id === id);
+  if (!p) return;
+  showConfirm(
+    '📦',
+    'Product Delete Karein?',
+    `"${p.name}" (Code: ${p.code}) — Stock: ${p.stock} ${p.unit}\n\n⚠️ Product delete karne par iska sab purchase/sale history alag ho jayega!`,
+    '🗑 Haan, Delete Karein',
+    () => {
+      DB.products = DB.products.filter(x => x.id !== id);
+      save();
+      showToast('🗑 Product delete ho gaya', 'orange');
+      renderProducts(); renderStock();
+    }
+  );
 }
 
 // ====== AUTO REFRESH every 30 seconds ======
