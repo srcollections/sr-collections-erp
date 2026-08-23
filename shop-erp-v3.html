@@ -861,6 +861,36 @@ body.admin-mode .admin-banner { display: block; }
   </div>
 </div>
 
+<!-- UDHAR HISTORY / LEDGER MODAL -->
+<div class="overlay" id="udhar-history-modal">
+  <div class="modal" style="width:600px;max-width:94vw">
+    <h2 id="uh-title">📜 Udhar History</h2>
+    <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:16px;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap">
+      <div><div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px">Naam</div><strong id="uh-name" style="color:var(--accent)">—</strong></div>
+      <div><div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px">Ab Tak Kul Udhar</div><strong id="uh-total-udhar" style="color:var(--red)">₹0</strong></div>
+      <div><div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px">Kul Diya/Liya</div><strong id="uh-total-paid" style="color:var(--green)">₹0</strong></div>
+      <div><div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px">Abhi Baaki</div><strong id="uh-current-balance" style="color:var(--red);font-size:16px">₹0</strong></div>
+    </div>
+    <div style="max-height:400px;overflow-y:auto;border:1px solid var(--border);border-radius:10px">
+      <table style="width:100%;border-collapse:collapse;font-size:12.5px">
+        <thead style="position:sticky;top:0;background:var(--surface2)">
+          <tr style="text-align:left">
+            <th style="padding:9px 12px;color:var(--text2);font-weight:600">Date</th>
+            <th style="padding:9px 12px;color:var(--text2);font-weight:600">Detail</th>
+            <th style="padding:9px 12px;color:var(--text2);font-weight:600;text-align:right">Udhar (+)</th>
+            <th style="padding:9px 12px;color:var(--text2);font-weight:600;text-align:right">Diya/Liya (−)</th>
+            <th style="padding:9px 12px;color:var(--text2);font-weight:600;text-align:right">Baaki</th>
+          </tr>
+        </thead>
+        <tbody id="uh-ledger-body"></tbody>
+      </table>
+    </div>
+    <div class="modal-actions" style="margin-top:20px">
+      <button class="btn btn-secondary" onclick="closeModal('udhar-history-modal')">Band Karein</button>
+    </div>
+  </div>
+</div>
+
 <!-- EDIT SALE MODAL -->
 <div class="overlay" id="edit-sale-modal">
   <div class="modal" style="width:500px;max-width:96vw">
@@ -1221,6 +1251,7 @@ function showToast(msg, color = 'green') { showSync(msg, color, 2500); }
 const rupee = n => '₹' + Number(n).toLocaleString('en-IN');
 const uid = () => Date.now() + Math.random().toString(36).slice(2, 6);
 const todayStr = () => new Date().toISOString().split('T')[0];
+const fmtDate = d => { if (!d) return '—'; const parts = d.split('-'); return parts.length === 3 ? `${parts[2]}-${parts[1]}-${parts[0]}` : d; };
 const thisMonth = () => new Date().toISOString().slice(0, 7);
 
 // ====== PARTIAL PAYMENT TOGGLE ======
@@ -1310,6 +1341,68 @@ function saveUdharPayment() {
   showToast(`✅ ${rupee(amt)} record ho gaya! Naya balance: ${rupee(Math.max(_upmCurrentBalance - amt, 0))}`, 'green');
   renderDashboard();
 }
+// ====== UDHAR HISTORY / LEDGER ======
+function buildUdharLedger(type, name) {
+  const txns = type === 'sale' ? DB.sales : DB.purchases;
+  const entries = [];
+
+  txns.forEach(t => {
+    const person = type === 'sale' ? (t.customer || 'Walk-in') : t.supplier;
+    if (person !== name) return;
+    if (t.payment === 'Paid') return; // us waqt full paid tha, udhar nahi bana
+    const total = t.total;
+    const paidAtTxn = t.paidAmount !== undefined ? t.paidAmount : 0;
+    const created = total - paidAtTxn;
+    if (created <= 0) return;
+    let detail = `${t.productName} × ${t.qty}`;
+    if (paidAtTxn > 0) detail += ` (Total ${rupee(total)}, us waqt ${rupee(paidAtTxn)} diya)`;
+    entries.push({ date: t.date, kind: 'udhar', detail, amount: created, _ts: t.date + '_0' });
+  });
+
+  DB.udharPayments.filter(u => u.type === type && u.name === name).forEach(u => {
+    entries.push({ date: u.date, kind: 'payment', detail: u.note || (type === 'sale' ? '💵 Payment liya' : '💵 Payment diya'), amount: u.amount, _ts: u.date + '_1' });
+  });
+
+  entries.sort((a, b) => a._ts < b._ts ? -1 : a._ts > b._ts ? 1 : 0);
+
+  let running = 0;
+  entries.forEach(e => {
+    running += e.kind === 'udhar' ? e.amount : -e.amount;
+    e.balanceAfter = running;
+  });
+
+  return entries;
+}
+
+function openUdharHistory(type, name) {
+  if (!DB.udharPayments) DB.udharPayments = [];
+  const entries = buildUdharLedger(type, name);
+  const totalUdhar = entries.filter(e => e.kind === 'udhar').reduce((a, e) => a + e.amount, 0);
+  const totalPaid  = entries.filter(e => e.kind === 'payment').reduce((a, e) => a + e.amount, 0);
+  const currentBal = entries.length ? entries[entries.length - 1].balanceAfter : 0;
+
+  document.getElementById('uh-title').textContent = type === 'sale' ? `📜 ${name} — Udhar History` : `📜 ${name} — Udhar History`;
+  document.getElementById('uh-name').textContent = name;
+  document.getElementById('uh-total-udhar').textContent = rupee(totalUdhar);
+  document.getElementById('uh-total-paid').textContent = rupee(totalPaid);
+  document.getElementById('uh-current-balance').textContent = rupee(Math.max(currentBal, 0));
+
+  const body = document.getElementById('uh-ledger-body');
+  if (!entries.length) {
+    body.innerHTML = '<tr><td colspan="5" style="padding:20px;text-align:center;color:var(--text2)">Koi udhar record nahi mila</td></tr>';
+  } else {
+    body.innerHTML = entries.map(e => `
+      <tr style="border-top:1px solid var(--border)">
+        <td style="padding:9px 12px;white-space:nowrap">${fmtDate(e.date)}</td>
+        <td style="padding:9px 12px;color:${e.kind === 'udhar' ? 'var(--text)' : 'var(--green)'}">${e.detail}</td>
+        <td style="padding:9px 12px;text-align:right;color:var(--red);font-weight:${e.kind === 'udhar' ? '700' : '400'}">${e.kind === 'udhar' ? rupee(e.amount) : '—'}</td>
+        <td style="padding:9px 12px;text-align:right;color:var(--green);font-weight:${e.kind === 'payment' ? '700' : '400'}">${e.kind === 'payment' ? rupee(e.amount) : '—'}</td>
+        <td style="padding:9px 12px;text-align:right;font-weight:700;color:${e.balanceAfter > 0 ? 'var(--red)' : 'var(--green)'}">${rupee(Math.max(e.balanceAfter, 0))}</td>
+      </tr>`).join('');
+  }
+  document.getElementById('udhar-history-modal').classList.add('show');
+}
+
 function saveProduct() {
   if (!currentUser || currentUser.role === 'admin') return alert('⛔ Admin sirf dekh sakta hai. Product add karne ke liye staff account se login karein.');
   const code = document.getElementById('p-code').value.trim();
@@ -2066,6 +2159,7 @@ function renderDashboard() {
           <span style="color:var(--green)">${rupee(v.paid)}</span>
           <span style="color:var(--red);font-weight:700">${rupee(v.rawBalance)}</span>
         </div>
+        <button class="pay-btn" style="background:rgba(255,255,255,0.06);color:var(--text2)" onclick="openUdharHistory('purchase','${name.replace(/'/g,"\\'")}')">📜</button>
         <button class="pay-btn staff-only" onclick="openUdharPayment('purchase','${name.replace(/'/g,"\\'")}',${v.rawBalance})">💳 Pay</button>
       </div>`).join('');
   }
@@ -2108,6 +2202,7 @@ function renderDashboard() {
           <span style="color:var(--green)">${rupee(v.paid)}</span>
           <span style="color:var(--red);font-weight:700">${rupee(v.rawBalance)}</span>
         </div>
+        <button class="pay-btn" style="background:rgba(255,255,255,0.06);color:var(--text2)" onclick="openUdharHistory('sale','${name.replace(/'/g,"\\'")}')">📜</button>
         <button class="pay-btn staff-only" onclick="openUdharPayment('sale','${name.replace(/'/g,"\\'")}',${v.rawBalance})">💳 Received</button>
       </div>`).join('');
   }
