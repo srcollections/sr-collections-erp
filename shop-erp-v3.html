@@ -258,6 +258,7 @@ body.admin-mode .admin-banner { display: block; }
     <button class="nav-item active" onclick="showPage('dashboard')"><span class="icon">📊</span> Dashboard</button>
     <button class="nav-item" onclick="showPage('products')"><span class="icon">👗</span> Products</button>
     <button class="nav-item" onclick="showPage('stock')"><span class="icon">📦</span> Stock</button>
+    <button class="nav-item" onclick="showPage('aging')"><span class="icon">🕰️</span> Purana Stock</button>
     <button class="nav-item" onclick="showPage('purchases')"><span class="icon">🛒</span> Purchase</button>
     <button class="nav-item" onclick="showPage('sales')"><span class="icon">💰</span> Sales</button>
     <button class="nav-item" onclick="showPage('expenses')"><span class="icon">💸</span> Expenses</button>
@@ -400,6 +401,44 @@ body.admin-mode .admin-banner { display: block; }
       <table>
         <thead><tr><th>Code</th><th>Product</th><th>Category</th><th>Qty</th><th>Reorder Level</th><th>Status</th><th>Value</th><th class="action-col">Stock Edit</th></tr></thead>
         <tbody id="stock-table"><tr><td colspan="8"><div class="empty"><p>Pehle products add karein</p></div></td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- PURANA STOCK / AGING -->
+  <div id="page-aging" class="page">
+    <div class="page-header"><h1>Purana Stock 🕰️</h1><p>Kaun sa maal kab aaya aur kitne din se nahi bik raha</p></div>
+    <div class="stats-grid" style="grid-template-columns:repeat(4,1fr)">
+      <div class="stat-card green"><div class="stat-label">Stock wale Items</div><div class="stat-value green" id="ag-total">0</div></div>
+      <div class="stat-card orange"><div class="stat-label">30+ din se nahi bika</div><div class="stat-value orange" id="ag-30">0</div></div>
+      <div class="stat-card red"><div class="stat-label">90+ din se nahi bika</div><div class="stat-value red" id="ag-90">0</div></div>
+      <div class="stat-card red"><div class="stat-label">Atka hua paisa (30+ din)</div><div class="stat-value red" id="ag-val">₹0</div></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="card-title" id="ag-count">Items (0)</span></div>
+      <div class="filter-bar">
+        <div class="quick-btns">
+          <button class="qbtn ag-days-btn active" onclick="setAgingDays(0,this)">Sab</button>
+          <button class="qbtn ag-days-btn" onclick="setAgingDays(30,this)">30+ din</button>
+          <button class="qbtn ag-days-btn" onclick="setAgingDays(60,this)">60+ din</button>
+          <button class="qbtn ag-days-btn" onclick="setAgingDays(90,this)">90+ din</button>
+          <button class="qbtn ag-days-btn" onclick="setAgingDays(180,this)">180+ din</button>
+        </div>
+        <select id="ag-cat" onchange="renderAging()" style="width:120px">
+          <option value="">Sab Category</option>
+          <option value="Cloth">👗 Cloth</option>
+          <option value="Shoes">👟 Footwear</option>
+        </select>
+        <select id="ag-sort" onchange="renderAging()" style="width:170px">
+          <option value="idle">Sabse purana pehle</option>
+          <option value="value">Zyada paisa atka pehle</option>
+          <option value="arrival">Pehle aaya hua pehle</option>
+        </select>
+        <input class="filter-search" id="ag-search" placeholder="🔍 Product / Code..." oninput="renderAging()">
+      </div>
+      <table>
+        <thead><tr><th>Code</th><th>Product</th><th>Stock</th><th>Last Aaya</th><th>Last Bika</th><th>Pichle 30 din mein bika</th><th>Atka Paisa</th><th>Status</th></tr></thead>
+        <tbody id="aging-table"><tr><td colspan="8"><div class="empty"><p>Pehle products add karein</p></div></td></tr></tbody>
       </table>
     </div>
   </div>
@@ -1186,6 +1225,7 @@ function renderCurrentPage() {
   if (currentPage === 'dashboard') renderDashboard();
   if (currentPage === 'products') renderProducts();
   if (currentPage === 'stock') renderStock();
+  if (currentPage === 'aging') renderAging();
   if (currentPage === 'purchases') renderPurchases();
   if (currentPage === 'sales') renderSales();
   if (currentPage === 'expenses') renderExpenses();
@@ -1482,6 +1522,80 @@ function renderProducts(filter = '') {
 function filterProducts(v) { renderProducts(v); }
 
 // ====== STOCK ======
+// ====== PURANA STOCK (AGING) ======
+let _agingMinDays = 0;
+function setAgingDays(d, btn) {
+  _agingMinDays = d;
+  document.querySelectorAll('.ag-days-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  renderAging();
+}
+function _daysAgo(dateStr) {
+  if (!dateStr) return null;
+  const d = new Date(dateStr + 'T00:00:00');
+  const t = new Date(); t.setHours(0, 0, 0, 0);
+  return Math.max(0, Math.round((t - d) / 86400000));
+}
+function _agoText(days) {
+  if (days === null) return '—';
+  if (days === 0) return 'Aaj';
+  if (days < 30) return days + ' din pehle';
+  const m = Math.floor(days / 30), r = days % 30;
+  return m + ' mahine' + (r ? ' ' + r + ' din' : '') + ' pehle';
+}
+function renderAging() {
+  const catF = document.getElementById('ag-cat').value;
+  const q = document.getElementById('ag-search').value.trim().toLowerCase();
+  const sortBy = document.getElementById('ag-sort').value;
+
+  const lastBuy = {}, lastSell = {}, sold30 = {};
+  DB.purchases.forEach(pu => { if (pu.date && (!lastBuy[pu.productId] || pu.date > lastBuy[pu.productId])) lastBuy[pu.productId] = pu.date; });
+  DB.sales.forEach(sa => {
+    if (!sa.date) return;
+    if (!lastSell[sa.productId] || sa.date > lastSell[sa.productId]) lastSell[sa.productId] = sa.date;
+    const d = _daysAgo(sa.date);
+    if (d !== null && d <= 30) sold30[sa.productId] = (sold30[sa.productId] || 0) + sa.qty;
+  });
+
+  const all = DB.products.filter(p => p.stock > 0).map(p => {
+    const lb = lastBuy[p.id] || null, ls = lastSell[p.id] || null;
+    const ref = (lb && ls) ? (lb > ls ? lb : ls) : (lb || ls);   // jo bhi latest hua (aaya ya bika)
+    return { p, lb, ls, idle: _daysAgo(ref), arrival: _daysAgo(lb), s30: sold30[p.id] || 0, val: p.stock * p.purchasePrice };
+  });
+
+  // Top stats (filter se independent)
+  const n30 = all.filter(x => x.idle !== null && x.idle >= 30);
+  document.getElementById('ag-total').textContent = all.length;
+  document.getElementById('ag-30').textContent = n30.length;
+  document.getElementById('ag-90').textContent = all.filter(x => x.idle !== null && x.idle >= 90).length;
+  document.getElementById('ag-val').textContent = rupee(n30.reduce((a, x) => a + x.val, 0));
+
+  let list = all.filter(x => (!catF || x.p.cat === catF) && (!q || x.p.name.toLowerCase().includes(q) || x.p.code.toLowerCase().includes(q)));
+  if (_agingMinDays > 0) list = list.filter(x => x.idle !== null && x.idle >= _agingMinDays);
+
+  list.sort((a, b) => {
+    if (sortBy === 'value') return b.val - a.val;
+    if (sortBy === 'arrival') return (b.arrival ?? -1) - (a.arrival ?? -1);
+    return (b.idle ?? -1) - (a.idle ?? -1);
+  });
+
+  document.getElementById('ag-count').textContent = `Items (${list.length})`;
+  const tbody = document.getElementById('aging-table');
+  if (!list.length) { tbody.innerHTML = '<tr><td colspan="8"><div class="empty"><p>Koi item nahi mila 🎉</p></div></td></tr>'; return; }
+
+  tbody.innerHTML = list.map(x => {
+    let badge;
+    if (x.idle === null) badge = '<span class="badge" style="background:rgba(255,255,255,0.08);color:var(--text2)">❓ Record nahi</span>';
+    else if (x.idle >= 90) badge = '<span class="badge low">🔴 Dead 90+</span>';
+    else if (x.idle >= 60) badge = '<span class="badge" style="background:rgba(244,162,97,0.18);color:var(--accent)">🟠 Slow 60+</span>';
+    else if (x.idle >= 30) badge = '<span class="badge" style="background:rgba(255,209,102,0.15);color:#ffd166">🟡 Dhima 30+</span>';
+    else badge = '<span class="badge ok">🟢 Chal raha</span>';
+    const lastSoldTxt = x.ls ? `${fmtDate(x.ls)}<br><span style="color:var(--text2);font-size:11px">${_agoText(_daysAgo(x.ls))}</span>` : '<span style="color:var(--red)">Kabhi nahi bika</span>';
+    const lastBuyTxt = x.lb ? `${fmtDate(x.lb)}<br><span style="color:var(--text2);font-size:11px">${_agoText(x.arrival)}</span>` : '<span style="color:var(--text2)">Purchase record nahi</span>';
+    return `<tr><td><code style="color:var(--accent);font-size:12px">${x.p.code}</code></td><td>${x.p.name}<br><span class="badge ${x.p.cat === 'Cloth' ? 'cloth' : 'shoes'}" style="margin-top:3px">${x.p.cat}</span></td><td><strong style="font-size:16px">${x.p.stock}</strong> ${x.p.unit}</td><td>${lastBuyTxt}</td><td>${lastSoldTxt}</td><td>${x.s30 ? x.s30 + ' ' + x.p.unit : '<span style="color:var(--text2)">0</span>'}</td><td style="color:var(--accent)">${rupee(x.val)}</td><td>${badge}</td></tr>`;
+  }).join('');
+}
+
 function renderStock() {
   const allProds = DB.products;
   const prods = _activeStockCatFilter === 'all' ? allProds : allProds.filter(p => p.cat === _activeStockCatFilter);
