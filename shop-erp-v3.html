@@ -7,6 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700;800&family=Noto+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <!-- Supabase SDK -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>if (typeof supabase === 'undefined') { document.write('<script src="https://unpkg.com/@supabase/supabase-js@2"><\/script>'); }</script>
 <style>
 :root {
 --bg: #0f0e17; --surface: #1a1825; --surface2: #231f35;
@@ -1048,9 +1049,11 @@ body.admin-mode .admin-banner { display: block; }
 
 <script>
 // ====== SUPABASE SETUP ======
-const SUPABASE_URL = https://rdfenvaygprunexpyvbo.supabase.co
-const SUPABASE_KEY = sb_publishable_LRq7dGlrzlrmFSsSQNr8KA_kLHBbGaj
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const SUPABASE_URL = 'https://rdfenvaygprunexpyvbo.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_LRq7dGlrzlrmFSsSQNr8KA_kLHBbGaj';
+const sb = (typeof supabase !== 'undefined') ? supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
+const _withTimeout = (p, ms) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))]);
+window._usersOffline = false;
 
 // ====== DATA STORE ======
 let DB = { products: [], purchases: [], sales: [], expenses: [], staff: [], salaries: [], udharPayments: [] };
@@ -1071,7 +1074,8 @@ function showSync(msg, color, duration = 3000) {
 // ====== USERS — SUPABASE MEIN SAVE HONGE (CLOUD) ======
 async function loadUsersFromCloud() {
   try {
-    const { data, error } = await sb.from('erp_users').select('*').eq('shop_id', 'sr-collections').single();
+    const { data, error } = await _withTimeout(sb.from('erp_users').select('*').eq('shop_id', 'sr-collections').single(), 8000);
+    window._usersOffline = false;
     if (error && error.code !== 'PGRST116') throw error;
     if (data && data.users_json) {
       const users = JSON.parse(data.users_json);
@@ -1084,6 +1088,7 @@ async function loadUsersFromCloud() {
     return DEFAULT_USERS;
   } catch(e) {
     // Offline — local backup try karo
+    window._usersOffline = true;
     try {
       const loc = localStorage.getItem('erp-users-cloud');
       if (loc) return JSON.parse(loc);
@@ -1124,7 +1129,7 @@ async function saveUsers(users) {
 async function loadFromSupabase() {
   showSync('🔄 Data load ho raha hai...', 'blue', 0);
   try {
-    const { data, error } = await sb.from('erp_data').select('*').eq('shop_id', 'sr-collections').single();
+    const { data, error } = await _withTimeout(sb.from('erp_data').select('*').eq('shop_id', 'sr-collections').single(), 10000);
     if (error && error.code !== 'PGRST116') throw error;
     if (data && data.db_json) {
       DB = JSON.parse(data.db_json);
@@ -1177,7 +1182,8 @@ async function doLogin() {
 
   // Cloud se latest users fetch karo
   _cachedUsers = null; // Cache clear karo taaki fresh load ho
-  const users = await getUsers();
+  let users;
+  try { users = await getUsers(); } catch(e) { users = DEFAULT_USERS; window._usersOffline = true; }
   document.getElementById('login-loading').classList.remove('show');
 
   const user = users.find(u => u.id === id && u.pass === pass);
@@ -1204,8 +1210,10 @@ async function doLogin() {
     badgeWrap.style.display = 'block';
     loadFromSupabase();
   } else {
-    document.getElementById('login-error').classList.add('show');
-    setTimeout(() => document.getElementById('login-error').classList.remove('show'), 3000);
+    const le = document.getElementById('login-error');
+    le.textContent = window._usersOffline ? '⚠️ Internet/server se connect nahi hua. Net check karke dobara try karein.' : '❌ ID ya Password galat hai!';
+    le.classList.add('show');
+    setTimeout(() => le.classList.remove('show'), 4000);
   }
 }
 
