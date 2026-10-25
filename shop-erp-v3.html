@@ -264,6 +264,7 @@ body.admin-mode .admin-banner { display: block; }
     <button class="nav-item" onclick="showPage('sales')"><span class="icon">💰</span> Sales</button>
     <button class="nav-item" onclick="showPage('expenses')"><span class="icon">💸</span> Expenses</button>
     <button class="nav-item" onclick="showPage('staff')"><span class="icon">👨‍💼</span> Staff & Salary</button>
+    <button class="nav-item" onclick="showPage('daily')"><span class="icon">📅</span> Daily Report</button>
     <button class="nav-item" onclick="showPage('profit')"><span class="icon">📈</span> Profit Report</button>
     <button class="nav-item" id="settings-nav-btn" onclick="showPage('settings')"><span class="icon">⚙️</span> Settings</button>
   </div>
@@ -571,6 +572,52 @@ body.admin-mode .admin-banner { display: block; }
         <thead><tr><th>Date</th><th>Staff</th><th>Amount</th><th>Note</th></tr></thead>
         <tbody id="salary-table"><tr><td colspan="4"><div class="empty"><p>Koi salary record nahi</p></div></td></tr></tbody>
       </table>
+    </div>
+  </div>
+
+  <!-- DAILY REPORT -->
+  <div id="page-daily" class="page">
+    <div class="page-header"><h1>Daily Report 📅</h1><p>Din-wise kamai aur kharcha, hafte/mahine ka total</p></div>
+    <div class="card" style="margin-bottom:20px">
+      <div class="filter-bar">
+        <div class="quick-btns">
+          <button class="qbtn dr-btn" onclick="setDailyPeriod('today',this)">Aaj</button>
+          <button class="qbtn dr-btn" onclick="setDailyPeriod('week',this)">Is Hafte</button>
+          <button class="qbtn dr-btn" onclick="setDailyPeriod('lastweek',this)">Pichla Hafta</button>
+          <button class="qbtn dr-btn active" onclick="setDailyPeriod('month',this)">Is Mahine</button>
+          <button class="qbtn dr-btn" onclick="setDailyPeriod('lastmonth',this)">Pichla Mahina</button>
+          <button class="qbtn dr-btn" onclick="setDailyPeriod('year',this)">Is Saal</button>
+          <button class="qbtn dr-btn" onclick="setDailyPeriod('all',this)">Sab</button>
+        </div>
+        <input type="date" id="dr-from" onchange="setDailyCustom()" title="From date">
+        <input type="date" id="dr-to" onchange="setDailyCustom()" title="To date">
+        <select id="dr-group" onchange="renderDaily()" style="width:150px">
+          <option value="day">📅 Din-wise</option>
+          <option value="week">🗓️ Hafte-wise</option>
+          <option value="month">🈷️ Mahine-wise</option>
+        </select>
+      </div>
+    </div>
+    <div class="stats-grid">
+      <div class="stat-card orange"><div class="stat-label">Total Bikri</div><div class="stat-value orange" id="dr-rev">₹0</div></div>
+      <div class="stat-card green"><div class="stat-label">Total Kamai (Profit)</div><div class="stat-value green" id="dr-profit">₹0</div></div>
+      <div class="stat-card red"><div class="stat-label">Total Kharcha</div><div class="stat-value red" id="dr-exp">₹0</div></div>
+      <div class="stat-card blue"><div class="stat-label">Net Bachat</div><div class="stat-value blue" id="dr-net">₹0</div></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="card-title" id="dr-title">Report</span></div>
+      <table>
+        <thead><tr><th>Date</th><th>Bikri</th><th>Kamai (Profit)</th><th>Kharcha</th><th>Net Bachat</th></tr></thead>
+        <tbody id="daily-table"><tr><td colspan="5"><div class="empty"><p>Koi data nahi</p></div></td></tr></tbody>
+      </table>
+    </div>
+    <div class="card" style="margin-top:20px">
+      <div class="card-header"><span class="card-title">🏁 Ab Tak Ka Kul (Shuru se aaj tak)</span></div>
+      <div style="padding:6px 20px 18px;display:flex;gap:28px;flex-wrap:wrap">
+        <div><div style="font-size:11px;color:var(--text2)">KUL KAMAI</div><strong id="dr-all-profit" style="color:var(--green);font-size:18px">₹0</strong></div>
+        <div><div style="font-size:11px;color:var(--text2)">KUL KHARCHA</div><strong id="dr-all-exp" style="color:var(--red);font-size:18px">₹0</strong></div>
+        <div><div style="font-size:11px;color:var(--text2)">KUL BACHAT</div><strong id="dr-all-net" style="color:var(--blue);font-size:18px">₹0</strong></div>
+      </div>
     </div>
   </div>
 
@@ -1238,6 +1285,7 @@ function renderCurrentPage() {
   if (currentPage === 'sales') renderSales();
   if (currentPage === 'expenses') renderExpenses();
   if (currentPage === 'staff') renderStaff();
+  if (currentPage === 'daily') renderDaily();
   if (currentPage === 'profit') renderProfit();
   if (currentPage === 'settings') renderSettings();
 }
@@ -2139,6 +2187,82 @@ function renderStaff() {
 }
 
 // ====== PROFIT ======
+// ====== DAILY REPORT ======
+let _drPeriod = 'month';
+function _ymdAdd(ymd, days) { const [y,m,d] = ymd.split('-').map(Number); const t = new Date(Date.UTC(y, m-1, d + days)); return t.toISOString().slice(0,10); }
+function _weekStart(ymd) { const [y,m,d] = ymd.split('-').map(Number); const wd = new Date(Date.UTC(y, m-1, d)).getUTCDay(); return _ymdAdd(ymd, -((wd + 6) % 7)); } // Monday
+function _drRange() {
+  const t = todayStr();
+  switch (_drPeriod) {
+    case 'today': return [t, t];
+    case 'week': return [_weekStart(t), t];
+    case 'lastweek': { const ws = _weekStart(t); return [_ymdAdd(ws, -7), _ymdAdd(ws, -1)]; }
+    case 'month': return [t.slice(0,7) + '-01', t];
+    case 'lastmonth': { const [y,m] = t.split('-').map(Number); const first = new Date(Date.UTC(y, m-2, 1)); const last = new Date(Date.UTC(y, m-1, 0)); return [first.toISOString().slice(0,10), last.toISOString().slice(0,10)]; }
+    case 'year': return [t.slice(0,4) + '-01-01', t];
+    case 'custom': return [document.getElementById('dr-from').value || '0000-01-01', document.getElementById('dr-to').value || '9999-12-31'];
+    default: return ['0000-01-01', '9999-12-31'];
+  }
+}
+function setDailyPeriod(p, btn) {
+  _drPeriod = p;
+  document.querySelectorAll('.dr-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  document.getElementById('dr-from').value = ''; document.getElementById('dr-to').value = '';
+  renderDaily();
+}
+function setDailyCustom() {
+  _drPeriod = 'custom';
+  document.querySelectorAll('.dr-btn').forEach(b => b.classList.remove('active'));
+  renderDaily();
+}
+function renderDaily() {
+  const [from, to] = _drRange();
+  const group = document.getElementById('dr-group').value;
+  const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const keyOf = d => group === 'day' ? d : group === 'week' ? _weekStart(d) : d.slice(0,7);
+  const labelOf = k => {
+    if (group === 'day') return fmtDate(k);
+    if (group === 'week') return fmtDate(k) + ' se ' + fmtDate(_ymdAdd(k, 6));
+    const [y, m] = k.split('-'); return monthNames[+m - 1] + ' ' + y;
+  };
+  const inRange = d => d && d >= from && d <= to;
+  const rows = {};
+  const row = d => { const k = keyOf(d); return rows[k] || (rows[k] = { rev: 0, profit: 0, exp: 0, items: {} }); };
+
+  DB.sales.forEach(x => { if (inRange(x.date)) { const r = row(x.date); r.rev += x.total; r.profit += (x.profit || 0); } });
+  DB.expenses.forEach(x => { if (inRange(x.date)) { const r = row(x.date); r.exp += x.amount; const n = group === 'day' ? (x.desc || x.cat) : x.cat; r.items[n] = (r.items[n] || 0) + x.amount; } });
+  DB.salaries.forEach(x => { if (inRange(x.date)) { const r = row(x.date); r.exp += x.amount; const n = group === 'day' ? ('Salary ' + (x.staffName || '')) : 'Salary'; r.items[n] = (r.items[n] || 0) + x.amount; } });
+
+  const keys = Object.keys(rows).sort().reverse();
+  const tot = keys.reduce((a, k) => ({ rev: a.rev + rows[k].rev, profit: a.profit + rows[k].profit, exp: a.exp + rows[k].exp }), { rev: 0, profit: 0, exp: 0 });
+  const net = tot.profit - tot.exp;
+  document.getElementById('dr-rev').textContent = rupee(tot.rev);
+  document.getElementById('dr-profit').textContent = rupee(tot.profit);
+  document.getElementById('dr-exp').textContent = rupee(tot.exp);
+  document.getElementById('dr-net').textContent = rupee(net);
+  document.getElementById('dr-net').style.color = net >= 0 ? 'var(--blue)' : 'var(--red)';
+  const periodTxt = _drPeriod === 'all' ? 'Sab' : (from === '0000-01-01' ? '' : fmtDate(from)) + ' se ' + (to === '9999-12-31' ? 'aaj tak' : fmtDate(to));
+  document.getElementById('dr-title').textContent = `${group === 'day' ? 'Din-wise' : group === 'week' ? 'Hafte-wise' : 'Mahine-wise'} Report (${periodTxt})`;
+
+  const tbody = document.getElementById('daily-table');
+  if (!keys.length) tbody.innerHTML = '<tr><td colspan="5"><div class="empty"><p>Is period mein koi data nahi</p></div></td></tr>';
+  else {
+    tbody.innerHTML = keys.map(k => {
+      const r = rows[k], n = r.profit - r.exp;
+      const det = Object.entries(r.items).map(([a, b]) => `${a} ${rupee(b)}`).join(', ');
+      return `<tr><td><strong>${labelOf(k)}</strong></td><td style="color:var(--accent)">${rupee(r.rev)}</td><td style="color:var(--green)">${rupee(r.profit)}</td><td style="color:var(--red)">${rupee(r.exp)}${det ? `<br><span style="color:var(--text2);font-size:11px">${det}</span>` : ''}</td><td><strong style="color:${n >= 0 ? 'var(--blue)' : 'var(--red)'}">${rupee(n)}</strong></td></tr>`;
+    }).join('') + `<tr style="border-top:2px solid var(--border);background:rgba(255,255,255,0.03)"><td><strong>TOTAL</strong></td><td style="color:var(--accent)"><strong>${rupee(tot.rev)}</strong></td><td style="color:var(--green)"><strong>${rupee(tot.profit)}</strong></td><td style="color:var(--red)"><strong>${rupee(tot.exp)}</strong></td><td><strong style="color:${net >= 0 ? 'var(--blue)' : 'var(--red)'}">${rupee(net)}</strong></td></tr>`;
+  }
+
+  // Ab tak ka kul
+  const aP = DB.sales.reduce((a, x) => a + (x.profit || 0), 0);
+  const aE = DB.expenses.reduce((a, x) => a + x.amount, 0) + DB.salaries.reduce((a, x) => a + x.amount, 0);
+  document.getElementById('dr-all-profit').textContent = rupee(aP);
+  document.getElementById('dr-all-exp').textContent = rupee(aE);
+  const aN = document.getElementById('dr-all-net'); aN.textContent = rupee(aP - aE); aN.style.color = (aP - aE) >= 0 ? 'var(--blue)' : 'var(--red)';
+}
+
 function renderProfit() {
   const revenue = DB.sales.reduce((a, s) => a + s.total, 0);
   const purchaseCost = DB.purchases.reduce((a, p) => a + p.total, 0);
